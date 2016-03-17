@@ -552,18 +552,6 @@ end;
 
 (*
   Functions
-  To-Do:
-    Store functions bytecode in the same context, this will notably reduce
-    call overhead, as then all we have to do is to move the program counter.
-
-    So the alternatives are:
-      - where it is, but emit a jump that jumps past the function.
-
-      - at the top of the opcode, this will require a jump (past all functions),
-      or that the program counter starts after the functions opcodes
-
-      - at the bottom, after the "program" return opcode. This is also hard, as
-      we kinda need to know where the function is stored when we compile a call.
 *)
 constructor TFunction.Create(AName:string; AParams:TVarArray; AProg:TBlock; DocPos: TDocPos);
 begin
