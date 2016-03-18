@@ -106,7 +106,7 @@ end;
 
 procedure TMyApplication.DoRun;
 begin
-  TestExecute2('tests/sample.ex');
+  TestExecute2('tests/recursion.ex');
   //TestLexPerformance('tests/parse_performance.ex');
   //TestParsePerformance('tests/parse_performance.ex');
   while True do Sleep(500);

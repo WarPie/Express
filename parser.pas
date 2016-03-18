@@ -312,12 +312,13 @@ begin
   Params := ParseVarList(True);
   ExpectAndInc(rparen);
 
-  SkipTokens(SEPARATORS);
-
   if Current = keyword('return') then
     Prog := TBlock.Create(self.ParseStatement(), DocPos)
   else
+  begin
+    SkipTokens(SEPARATORS);
     Prog := TBlock.Create(ParseStatements(['end'], True), DocPos);
+  end;
 
   Result := TFunction.Create(Name.Value, Params, Prog, DocPos);
 end;
@@ -585,6 +586,7 @@ begin
 
     op := Next(PostInc);
     right := ParsePrimary();
+    if right = nil then RaiseException(eInvalidExpression);
 
     nextPrecedence := OperatorPrecedence;
     if precedence < nextPrecedence then
@@ -728,6 +730,7 @@ var
   prim:TBaseNode;
 begin
   SetLength(Result, 0);
+
   while (Current.Token <> tk_unknown) and (not StringContains(EndKeywords, Current.value)) do
   begin
     prim := self.ParseStatement();

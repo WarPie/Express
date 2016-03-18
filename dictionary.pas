@@ -78,7 +78,7 @@ type
     // create
     constructor Create(AHashFunc:THash);
 
-    // create
+    // create a copy
     function Copy: TSelfType;
 
     // Sets the base-size of the dictionary
@@ -138,7 +138,8 @@ type
     // > value := mydict['hello world'];
     property Item[key:K]: V read GetFast write AddFast; default;
 
-    //-------| Field access properties |------------
+
+    //-------| Field access properties |------------------------------------
 
     // Access hashmap-items directly [r]
     // value := Dict.Items[hash,idx]
@@ -146,10 +147,6 @@ type
 
     // Sets whether the map can (automatically) resize, or not (Default = True);
     property Resizable:Boolean read FResizable write FResizable;
-
-    // Should not really be used
-    property _Size:UInt32 read FSize write FSize;
-    property _High:UInt32 read FHigh write FHigh;
   end;
 
 
@@ -229,12 +226,16 @@ end;
 
 
 function TDictionary<K,V>.Copy(): TSelfType;
+var i:Int32;
 begin
   Result := TSelfType.Create(@HashFunc);
   Result.Resizable := Self.FResizable;
-  Result._Size := Self.FSize;
-  Result._High := Self.FHigh;
-  Result.Items := System.Copy(Self.FData, 0, Self.FSize);
+  Result.FSize := Self.FSize;
+  Result.FHigh := Self.FHigh;
+
+  SetLength(Result.FData, Length(Self.FData));
+  for i:=0 to High(Self.FData) do
+    Result.FData[i] := System.Copy(Self.FData[i]);
 end;
 
 

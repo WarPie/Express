@@ -27,7 +27,9 @@ type
   TIntArray = array of Int32;  
   
   EIncOrder = (PostInc=0, PreInc=1); 
-  
+
+  TIntRange = record Low,High:Int32; end;
+
 type
   TTokenKind = (
     tk_unknown,

@@ -543,15 +543,19 @@ var
 begin
   for i:=0 to High(Variables) do
   begin
+    Expr.Compile(ctx);
     dest := ctx.RegisterVar(TVariable(Variables[i]).Name, True);
     Variables[i].Compile(ctx);
-    Expr.Compile(ctx);
-    ctx.Emit(opcodes.ASGN, dest, FDocPos);
+    ctx.Emit(opcodes.RASGN, dest, FDocPos);
   end;
 end;
 
 (*
   Functions
+  To-do:
+    Fix for recursion, every time the function is called
+    the local vars has to be re-allocated (somehow)..
+    Sadly this will add a major overhead -.-'
 *)
 constructor TFunction.Create(AName:string; AParams:TVarArray; AProg:TBlock; DocPos: TDocPos);
 begin
@@ -568,12 +572,14 @@ end;
 
 procedure TFunction.Compile(ctx: TCompilerContext);
 var
-  dest,funcStart,i:Int32;
+  dest,funcStart,i,funcID:Int32;
   funcObj: TFuncObject;
 var
   oldNameMap, funcNameMap: TStringToIntMap;
 begin
-  oldNameMap := ctx.Vars.NamesToNumbers;
+  funcID := ctx.RegisterVar(Name);
+
+  oldNameMap  := ctx.Vars.NamesToNumbers;
   funcNameMap := oldNameMap.Copy();
 
   //set context to our function and compile
@@ -583,7 +589,7 @@ begin
     ctx.Emit(opcodes.__FUNC, -1, FDocPos);
     funcStart := ctx.CodeSize;
 
-    (* The caller has pushed arguments onto the stack, so we need to store them *)
+    (* The caller has pushed arguments onto the stack, we need to store them *)
     for i:=0 to High(Params) do
     begin
       dest := ctx.RegisterVar(Params[High(Params)-i].Name);
@@ -605,7 +611,7 @@ begin
   ctx.Vars.NamesToNumbers := oldNameMap;
 
   ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(funcObj), FDocPos);
-  ctx.Emit(opcodes.STORE_FAST, ctx.RegisterVar(Name), FDocPos);
+  ctx.Emit(opcodes.STORE_FAST, funcID, FDocPos);
 end;
 
 (*
