@@ -19,7 +19,7 @@ uses
 
 const
   ATOM = [tk_ident, tk_int, tk_float, tk_bool, tk_char, tk_string, tk_none];
-  EXPRESSION = ATOM + [tk_sum, tk_bitwise, tk_paren];
+  EXPRESSION = ATOM + [tk_sum, tk_bitwise, tk_paren, tk_square];
   SEPARATORS = [tk_newline, tk_semicolon];
 
 type
@@ -59,7 +59,9 @@ type
 
     function OperatorPrecedence(): Int8; inline;
     function OperatorAssoc(): Int8; inline;
-    function IsUnary(): Boolean; inline;
+
+    function IS_UNARY(): Boolean; inline;
+    function IS_ENCLOSURE(): Boolean; inline;
 
     function ParseReturn(): TReturn; inline;
     function ParseContinue(): TContinue; inline;
@@ -70,6 +72,7 @@ type
     function ParseIndex(indexable:TBaseNode): TIndex;
     function ParseIf(): TIf;
     function ParseWhile(): TWhile;
+    function ParseRepeat(): TRepeat;
     function ParseFor(): TFor;
     function ParsePrint(): TPrint;
 
@@ -191,7 +194,12 @@ end;
 
 procedure TParser.RaiseExceptionFmt(msg:string; fmt:array of const);
 begin
-  errors.RaiseExceptionFmt(eSyntaxError, msg, fmt, DocPos);
+  try
+    errors.RaiseExceptionFmt(eSyntaxError, msg, fmt, DocPos);
+  except
+    on e:SyntaxError do
+      raise SyntaxError.Create(e.Message) at get_caller_addr(get_frame);
+  end;
 end;
 
 procedure TParser.Expect(Token:TToken);
@@ -267,13 +275,17 @@ begin
   Result := PrecedenceMap.GetDef(Current.Value, def).assoc;
 end;
 
-function TParser.IsUnary(): Boolean;
+function TParser.IS_UNARY: Boolean;
 var
   def:TOperatorPrecedence = (prec:-1; assoc:0);
 begin
   Result := UnaryPrecedenceMap.GetDef(Current.Value, def).prec <> -1;
 end;
 
+function TParser.IS_ENCLOSURE: Boolean;
+begin
+  Result := (Current.Token = tk_square) and (Current.Value = '[');
+end;
 
 {==============================================================================]
   Here starts the actual parsing.. :)
@@ -297,6 +309,16 @@ begin
   ExpectAndInc('break');
   SkipTokens(SEPARATORS);
   Result := TBreak.Create(DocPos);
+end;
+
+//print ...
+function TParser.ParsePrint(): TPrint;
+var exprs:TNodeArray;
+begin
+  ExpectAndInc('print');
+  exprs := ParseExpressionList(False,False);
+  Result := TPrint.Create(exprs, DocPos);
+  SkipTokens(SEPARATORS);
 end;
 
 function TParser.ParseFunction(): TFunction;
@@ -353,8 +375,8 @@ begin
 end;
 
 (*IF STATEMENT:
-  | if condition then <stmts> [end | else <stmts> end]
-  | if (condition) <stmt> [else <stmt>]
+  > if condition then <stmts> [end | else <stmts> end]
+  > if (condition) <stmt> [else <stmt>]
 *)
 function TParser.ParseIf(): TIf;
 var
@@ -388,8 +410,8 @@ begin
 end;
 
 (*WHILE LOOP:
-  | while condition do <stmts> end
-  | while (condition) <stmt>
+  > while condition do <stmts> end
+  > while (condition) <stmt>
 *)
 function TParser.ParseWhile(): TWhile;
 var
@@ -415,9 +437,29 @@ begin
   FLooping := False;
 end;
 
+(*REPEAT LOOP:
+  > repeat <stmts> until(<condition>)
+*)
+function TParser.ParseRepeat(): TRepeat;
+var
+  condition:TBaseNode;
+  body:TBlock;
+begin
+  ExpectAndInc('repeat');
+  FLooping := True;
+  body := TBlock.Create(ParseStatements(['until'], True), DocPos);
+  FLooping := False;
+
+  ExpectAndInc(lparen, PostInc);
+  Condition := ParseExpression(False);
+  ExpectAndInc(rparen, PostInc);
+
+  Result := TRepeat.Create(condition, body, DocPos);
+end;
+
 (*FOR LOOP:
-  | for(<expr>; <condition>; <expr>) do <stmts> end
-  | for(<expr>; <condition>; <expr>) <stmt>
+  > for <expr>; <condition>; <expr> do <stmts> end
+  > for(<expr>; <condition>; <expr>) <stmt>
 *)
 function TParser.ParseFor(): TFor;
 var
@@ -453,21 +495,12 @@ begin
   FLooping := False;
 end;
 
-//print ...
-function TParser.ParsePrint(): TPrint;
-var expr:TBaseNode;
-begin
-  ExpectAndInc('print');
-  expr := ParseExpression(True);
-  Result := TPrint.Create(expr, DocPos);
-end;
 
 //meh
 function TParser.ParseVardecl: TVarDecl;
 var
   right:TBaseNode;
   left:TVarArray;
-  op:TToken;
 begin
   ExpectAndInc('var');
   left := ParseVarList(False);
@@ -532,7 +565,7 @@ end;
 function TParser.ParsePrimary: TBaseNode;
 var op:TToken;
 begin
-  if IsUnary then
+  if IS_UNARY then
   begin
     op := Next(PostInc);
     Result := TUnaryOp.Create(op, ParsePrimary(), False, DocPos)
@@ -542,7 +575,7 @@ begin
     Next();
     Result := TTimeNow.Create(DocPos);
   end
-  else if (Current.Token in ATOM) or (Current = lsquare) then
+  else if (Current.Token in ATOM) or IS_ENCLOSURE then
   begin
     Result := ParseAtom();
   end
@@ -688,6 +721,8 @@ begin
       Result := ParseIf()
     else if (Current.value = 'while') then
       Result := ParseWhile()
+    else if (Current.value = 'repeat') then
+      Result := ParseRepeat()
     else if (Current.value = 'for') then
       Result := ParseFor()
 

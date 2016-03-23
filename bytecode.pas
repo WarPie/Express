@@ -15,8 +15,9 @@ uses
   dictionary,
   datatypes,
   utils,
-  lexer,
-  opcodes;
+  {lexer,}
+  opcodes,
+  mmgr;
 
 type
   TObjectArray = array of TEpObject;
@@ -38,11 +39,9 @@ type
     DocPos: TDocPosArray;
     Variables: TObjectArray;
     Constants: TObjectArray;
+    GC: TGarbageCollector;
 
-    IsChild: Boolean;
     NumVars: Int32;
-    NumParams: Int32;
-    Name: string;
 
     VarNames: TStringArray;
     DebugHints: TIntToStringMap;
@@ -50,42 +49,35 @@ type
     constructor Create(ACode:TOperationArray;
                        AConstants:TObjectArray;
                        ANumVars:Int32;
-                       AIsChild:Boolean;
                        ADocPos:TDocPosArray;
-                       AName: string=''); virtual;
+                       MemMgr:TGarbageCollector); virtual;
     destructor Destroy; override;
     function ToString: string; override;
   end;
 
-  (*
-    Variable context
-  *)
+  (* "Variable context" *)
   TVarContext = record
-    //Names can contain duplicates (different scopes and such)
-    Names: TStringArray;
-
-    //The map belongs to a single scope (no duplicates)
-    NamesToNumbers: TStringToIntMap;
+    Names: TStringArray;             //Names can contain duplicates (different scopes and such)
+    NamesToNumbers: TStringToIntMap; //The map belongs to a single scope (no duplicates)
   end;
 
   (*
     Compiler context
   *)
   TCompilerContext = class(TObject)
-    IsChild: Boolean;
     Code: TOperationArray;
     DocPos: TDocPosArray;
+    GC: TGarbageCollector;
+
     Constants: TObjectArray;
-    
     Vars: TVarContext;
     DestVars: TIntArray;
 
     PatchCount: SizeInt;
     PatchPositions: TLoopInfoArray;
     DebugHints: TIntToStringMap;
-    
-    
-    constructor Create(AIsChild:Boolean=False; AConstants:TObjectArray=nil);
+
+    constructor Create();
     destructor Destroy; override;
 
     function CodeSize: SizeInt; inline;
@@ -132,34 +124,27 @@ uses
 constructor TBytecode.Create(ACode:TOperationArray;
                              AConstants:TObjectArray;
                              ANumVars:Int32;
-                             AIsChild:Boolean;
                              ADocPos:TDocPosArray;
-                             AName: string='');
+                             MemMgr:TGarbageCollector);
 var i:Int32;
 begin
   Code      := ACode;
   DocPos    := ADocPos;
   Constants := AConstants;
   NumVars   := ANumVars;
-  NumParams := 0;
-  IsChild   := AIsChild;
-  Name      := AName;
-  
+  GC        := MemMgr;
+
   SetLength(Variables, NumVars);
   for i:=0 to NumVars-1 do
     Variables[i] := Constants[0]; //None
 end;
 
 destructor TBytecode.Destroy;
-var i:Int32;
 begin
   if DebugHints <> nil then
     DebugHints.Destroy;
 
-  if not(IsChild) then
-    for i:=0 to High(Constants) do
-      Constants[i].Free;
-
+  GC.Destroy; //this will clean up whatever's left
   inherited;
 end;
 
@@ -202,16 +187,13 @@ end;
 (*============================================================================
   Compiler context for the AST .
   ============================================================================*)
-constructor TCompilerContext.Create(AIsChild:Boolean=False; AConstants:TObjectArray=nil);
+constructor TCompilerContext.Create();
 begin
+  GC := TGarbageCollector.Create();
+
   Vars.NamesToNumbers := TStringToIntMap.Create(@HashStr);
   DebugHints := TIntToStringMap.Create(@HashInt32);
-  if AIsChild then
-  begin
-    IsChild   := AIsChild;
-    Constants := AConstants;
-  end else
-    Self.RegisterConst(TNoneObject.Create());
+  Self.RegisterConst(GC.AllocNone());
 end;
 
 destructor TCompilerContext.Destroy;
@@ -375,7 +357,7 @@ end;
 // builds the bytecode which is what's executed at runtime.
 function TCompilerContext.Bytecode: TBytecode;
 begin
-  Result := TBytecode.Create(Code, Constants, Length(Vars.Names), IsChild, DocPos);
+  Result := TBytecode.Create(Code, Constants, Length(Vars.Names), DocPos, GC);
   Result.DebugHints := DebugHints;
   Result.VarNames := Vars.Names;
 end;

@@ -12,7 +12,7 @@ interface
 {$DEFINE E_NOT_IMPLEMENTED := RuntimeError.Create(eNotImplemented)}
 
 uses
-  Classes, SysUtils, opcodes, express;
+  Classes, SysUtils, express;
 
 const
   NO_REFERENCES = -1;
@@ -20,23 +20,29 @@ const
 
 type
   TEpObject = class
+    GC:Pointer;
+
+    function Release: Boolean; virtual;
+    function Copy: TEpObject; virtual; abstract;
+    function DeepCopy: TEpObject; virtual; abstract;
+
     function AsBool: Boolean; virtual;
     function AsChar: epChar; virtual;
     function AsInt: epInt; virtual;
     function AsFloat: Double; virtual;
     function AsString: epString; virtual;
-    
+
     procedure ASGN(other:TEpObject; var dest:TEpObject); virtual;
     procedure INPLACE_ADD(other:TEpObject); virtual;
     procedure INPLACE_SUB(other:TEpObject); virtual;
     procedure INPLACE_MUL(other:TEpObject); virtual;
     procedure INPLACE_DIV(other:TEpObject); virtual;
-    
+
     procedure PREINC(var dest:TEpObject); virtual;
     procedure PREDEC(var dest:TEpObject); virtual;
     procedure POSTINC(var dest:TEpObject); virtual;
     procedure POSTDEC(var dest:TEpObject); virtual;
-    
+
     procedure UNARY_SUB(var dest:TEpObject); virtual;
     procedure UNARY_INV(var dest:TEpObject); virtual;
 
@@ -47,14 +53,14 @@ type
     procedure FDIV(other:TEpObject; var dest:TEpObject); virtual;
     procedure MODULO(other:TEpObject; var dest:TEpObject); virtual;
     procedure POW(other:TEpObject; var dest:TEpObject); virtual;
-    
+
     procedure EQ(other:TEpObject; var dest:TEpObject); virtual;
     procedure NE(other:TEpObject; var dest:TEpObject); virtual;
     procedure LT(other:TEpObject; var dest:TEpObject); virtual;
     procedure GT(other:TEpObject; var dest:TEpObject); virtual;
     procedure GE(other:TEpObject; var dest:TEpObject); virtual;
     procedure LE(other:TEpObject; var dest:TEpObject); virtual;
-    
+
     procedure LOGIC_AND(other:TEpObject; var dest:TEpObject); virtual;
     procedure LOGIC_OR(other:TEpObject; var dest:TEpObject); virtual;
     procedure LOGIC_NOT(var dest:TEpObject); virtual;
@@ -66,10 +72,13 @@ type
     procedure GET_ITEM(index:TEpObject; var dest:TEpObject); virtual;
     procedure SET_ITEM(index:TEpObject; other:TEpObject); virtual;
   end;
-
   TObjectArray = array of TEpObject;
 
   TNoneObject = class(TEpObject)
+    function Release: Boolean; override;
+    function Copy: TEpObject; override;
+    function DeepCopy: TEpObject; override;
+
     function AsBool: Boolean; override;
     function AsString: epString; override;
     procedure ASGN(other:TEpObject; var dest:TEpObject); override;
@@ -89,7 +98,9 @@ type
   TBoolObject = class(TEpObject)
     value: Boolean;
     constructor Create(AValue:Boolean);
-    
+    function Copy: TEpObject; override;
+    function DeepCopy: TEpObject; override;
+
     function AsBool: Boolean; override;
     function AsInt: epInt; override;
     function AsString: epString; override;
@@ -110,6 +121,9 @@ type
   TCharObject = class(TEpObject)
     value: epChar;
     constructor Create(AValue:epChar);
+    function Copy: TEpObject; override;
+    function DeepCopy: TEpObject; override;
+
     function AsString: epString; override;
     function AsBool: Boolean; override;
     function AsChar: epChar; override;
@@ -129,10 +143,13 @@ type
     procedure LOGIC_OR(other:TEpObject; var dest:TEpObject); override;
     procedure LOGIC_NOT(var dest:TEpObject); override;
   end;
-  
+
   TIntObject = class(TEpObject)
     value: epInt;
     constructor Create(AValue:epInt);
+    function Copy: TEpObject; override;
+    function DeepCopy: TEpObject; override;
+
     function AsString: epString; override;
     function AsBool: Boolean; override;
     function AsInt: epInt; override;
@@ -178,6 +195,9 @@ type
   TFloatObject = class(TEpObject)
     value: Double;
     constructor Create(AValue:Double);
+    function Copy: TEpObject; override;
+    function DeepCopy: TEpObject; override;
+
     function AsString: epString; override;
     function AsBool: Boolean; override;
     function AsInt: epInt; override;
@@ -217,6 +237,10 @@ type
   TStringObject = class(TEpObject)
     value: epString;
     constructor Create(AValue:epString);
+
+    function Copy: TEpObject; override;
+    function DeepCopy: TEpObject; override;
+
     function AsChar: epChar; override;
     function AsString: epString; override;
     function AsBool: Boolean; override;
@@ -231,8 +255,12 @@ type
 
   TListObject = class(TEpObject)
     value: TObjectArray;
+
     constructor Create(AValue:TObjectArray);
-    destructor Destroy; override;
+    function Release: Boolean; override;
+    function Copy: TEpObject; override;
+    function DeepCopy: TEpObject; override;
+
     function AsString: epString; override;
     function AsBool: Boolean; override;
 
@@ -245,126 +273,141 @@ type
     procedure SET_ITEM(index:TEpObject; other:TEpObject); override;
   end;
 
-  TPointerObject = class(TEpObject)
-    value: Pointer;
-    constructor Create(AValue:Pointer);
+
+  TFuncObject = class(TEpObject)
+    Name: epString;
+    CodePos: Int32;
+    VarRange: TIntRange;
+
+    constructor Create(AName:epString; ACodePos:Int32; AVarRange:TIntRange);
+    function Copy: TEpObject; override;
+    function DeepCopy: TEpObject; override;
+
     function AsString: epString; override;
     procedure ASGN(other:TEpObject; var dest:TEpObject); override;
   end;
 
-  TFuncObject = class(TEpObject)
-    Name: epString;
-    PC: Int32;
-    constructor Create(AName:epString; ProgCounter:Int32);
-    function AsString: epString; override;
-    procedure ASGN(other:TEpObject; var dest:TEpObject); override;
-  end;
+
+procedure SetBoolDest(var dest:TEpObject; constref value:Boolean); inline;
+procedure SetCharDest(var dest:TEpObject; constref value:epChar); inline;
+procedure SetIntDest(var dest:TEpObject; constref value:epInt); inline;
+procedure SetFloatDest(var dest:TEpObject; constref value:Double); inline;
+procedure SetStringDest(var dest:TEpObject; constref value:epString); inline;
 
 
 implementation
 
 uses
-  utils, errors;
+  utils, errors, mmgr;
+
 
 {=============================================================================}
 // Helper functions
+// Releasing is technically not needed, but in certian cases we avoid
+// executing garbage collection, "release" is only a hint tho, special
+// objects wont get freed (only for simple data types)
 {=============================================================================}
-procedure SetBoolDest(var dest:TEpObject; constref value:Boolean); inline;
+procedure SetBoolDest(var dest:TEpObject; constref value:Boolean);
+var GC:TGarbageCollector;
 begin
+  assert(dest <> nil, 'dest is nil');
   if dest is TBoolObject then
     TBoolObject(dest).value := value
   else
   begin
-    if not(dest is TNoneObject) then dest.Free;
-    dest := TBoolObject.Create(value);
+    GC := TGarbageCollector(dest.gc);
+    GC.Release(dest);
+    dest := GC.AllocBool(value);
   end;
 end;
 
-procedure SetCharDest(var dest:TEpObject; constref value:epChar); inline;
+procedure SetCharDest(var dest:TEpObject; constref value:epChar);
+var GC:TGarbageCollector;
 begin
+  assert(dest <> nil, 'dest is nil');
   if dest is TCharObject then
     TCharObject(dest).value := value
   else
   begin
-    if not(dest is TNoneObject) then dest.Free;
-    dest := TCharObject.Create(value);
+    GC := TGarbageCollector(dest.gc);
+    GC.Release(dest);
+    dest := GC.AllocChar(value);
   end;
 end;
 
-procedure SetIntDest(var dest:TEpObject; constref value:epInt); inline;
+procedure SetIntDest(var dest:TEpObject; constref value:epInt);
+var GC:TGarbageCollector;
 begin
+  assert(dest <> nil, 'dest is nil');
   if dest is TIntObject then
     TIntObject(dest).value := value
   else
   begin
-    if not(dest is TNoneObject) then dest.Free;
-    dest := TIntObject.Create(value);
+    GC := TGarbageCollector(dest.gc);
+    GC.Release(dest);
+    dest := GC.AllocInt(value);
   end;
 end;
 
-procedure SetFloatDest(var dest:TEpObject; constref value:Double); inline;
+procedure SetFloatDest(var dest:TEpObject; constref value:Double);
+var GC:TGarbageCollector;
 begin
+  assert(dest <> nil, 'dest is nil');
   if dest is TFloatObject then
     TFloatObject(dest).value := value
   else
   begin
-    if not(dest is TNoneObject) then dest.Free;
-    dest := TFloatObject.Create(value);
+    GC := TGarbageCollector(dest.gc);
+    GC.Release(dest);
+    dest := GC.AllocFloat(value);
   end;
 end;
 
-procedure SetStringDest(var dest:TEpObject; constref value:epString); inline;
+procedure SetStringDest(var dest:TEpObject; constref value:epString);
+var GC:TGarbageCollector;
 begin
+  assert(dest <> nil, 'dest is nil');
   if dest is TStringObject then
     TStringObject(dest).value := value
   else
   begin
-    if not(dest is TNoneObject) then dest.Free;
-    dest := TStringObject.Create(value);
+    GC := TGarbageCollector(dest.gc);
+    GC.Release(dest);
+    dest := GC.AllocString(value);
   end;
 end;
 
-  
+
 {=============================================================================}
 // Base object
 {=============================================================================}
+function TEpObject.Release: Boolean;
+begin
+  if (self <> nil) then
+  begin
+    Result := True;
+    self.Destroy;
+  end else
+    Result := False;
+end;
+
 function TEpObject.AsBool: Boolean;    begin raise E_NOT_IMPLEMENTED; end;
 function TEpObject.AsChar: epChar;     begin raise E_NOT_IMPLEMENTED; end;
 function TEpObject.AsInt: epInt;       begin raise E_NOT_IMPLEMENTED; end;
 function TEpObject.AsFloat: Double;    begin raise E_NOT_IMPLEMENTED; end;
-function TEpObject.AsString: epString; begin Result := 'WTF?' end;//raise E_NOT_IMPLEMENTED; end;
+function TEpObject.AsString: epString; begin raise E_NOT_IMPLEMENTED; end;
 
 (*
-  We are here because `dest` is incorrect type so it has to be re-created.
+  We are here because `dest` is incorrect type so it has to be re-allocated.
 *)
 procedure TEpObject.ASGN(other:TEpObject; var dest:TEpObject);
 begin
   assert(other <> nil, '<other> is nil');
   assert(dest  <> nil, '<dest> is nil');
-  if not(dest is TNoneObject) then dest.Free;
-
-  if other is TNoneObject then
-    dest := other
-  else if other is TIntObject then
-    dest := TIntObject.Create(TIntObject(other).value)
-  else if other is TFloatObject then
-    dest := TFloatObject.Create(TFloatObject(other).value)
-  else if other is TBoolObject then
-    dest := TBoolObject.Create(TBoolObject(other).value)
-  else if other is TCharObject then
-    dest := TCharObject.Create(TCharObject(other).value)
-  else if other is TStringObject then
-    dest := TStringObject.Create(TStringObject(other).value)
-  else if other is TPointerObject then
-    dest := TPointerObject.Create(TPointerObject(other).value)
-  else if other is TListObject then
-    dest := TListObject.Create(TListObject(other).value)
-  else if other is TFuncObject then
-    dest := TFuncObject.Create(TFuncObject(other).Name, TFuncObject(other).PC)
-  else
-    raise E_NOT_IMPLEMENTED;
+  TGarbageCollector(dest.GC).Release(dest);
+  dest := other.Copy();
 end;
- 
+
 procedure TEpObject.INPLACE_ADD(other:TEpObject);  begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.INPLACE_SUB(other:TEpObject);  begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.INPLACE_MUL(other:TEpObject);  begin raise E_NOT_IMPLEMENTED; end;
@@ -382,12 +425,43 @@ procedure TEpObject.IDIV(other:TEpObject; var dest:TEpObject);   begin raise E_N
 procedure TEpObject.FDIV(other:TEpObject; var dest:TEpObject);   begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.MODULO(other:TEpObject; var dest:TEpObject); begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.POW(other:TEpObject; var dest:TEpObject);    begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.EQ(other:TEpObject; var dest:TEpObject);     begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.NE(other:TEpObject; var dest:TEpObject);     begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.LT(other:TEpObject; var dest:TEpObject);     begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.GT(other:TEpObject; var dest:TEpObject);     begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.GE(other:TEpObject; var dest:TEpObject);     begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.LE(other:TEpObject; var dest:TEpObject);     begin raise E_NOT_IMPLEMENTED; end;
+
+procedure TEpObject.EQ(other:TEpObject; var dest:TEpObject);
+begin
+  if (other is TNoneObject) then SetBoolDest(dest, False)
+  else raise E_NOT_IMPLEMENTED;
+end;
+
+procedure TEpObject.NE(other:TEpObject; var dest:TEpObject);
+begin
+  if (other is TNoneObject) then SetBoolDest(dest, True)
+  else raise E_NOT_IMPLEMENTED;
+end;
+
+procedure TEpObject.LT(other:TEpObject; var dest:TEpObject);
+begin
+  if (other is TNoneObject) then SetBoolDest(dest, False)
+  else raise E_NOT_IMPLEMENTED;
+end;
+
+procedure TEpObject.GT(other:TEpObject; var dest:TEpObject);
+begin
+  if (other is TNoneObject) then SetBoolDest(dest, True)
+  else raise E_NOT_IMPLEMENTED;
+end;
+
+procedure TEpObject.GE(other:TEpObject; var dest:TEpObject);
+begin
+  if (other is TNoneObject) then SetBoolDest(dest, True)
+  else raise E_NOT_IMPLEMENTED;
+end;
+
+procedure TEpObject.LE(other:TEpObject; var dest:TEpObject);
+begin
+  if (other is TNoneObject) then SetBoolDest(dest, False)
+  else raise E_NOT_IMPLEMENTED;
+end;
+
 procedure TEpObject.LOGIC_AND(other:TEpObject; var dest:TEpObject); begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.LOGIC_OR(other:TEpObject; var dest:TEpObject);  begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.LOGIC_NOT(var dest:TEpObject);                  begin raise E_NOT_IMPLEMENTED; end;
@@ -401,12 +475,18 @@ procedure TEpObject.SET_ITEM(index:TEpObject; other:TEpObject);     begin raise 
 {=============================================================================}
 // None
 {=============================================================================}
+function TNoneObject.Release: Boolean;    begin Result := False; end;
+function TNoneObject.Copy: TEpObject;     begin Result := self; end;
+function TNoneObject.DeepCopy: TEpObject; begin Result := self; end;
+
 function TNoneObject.AsBool: Boolean;    begin Result := False end;
 function TNoneObject.AsString: epString; begin Result := 'None'; end;
 
 procedure TNoneObject.ASGN(other:TEpObject; var dest:TEpObject);
 begin
-  if not(other is TNoneObject) then
+  //if (other is TNoneObject) then
+  //  other := self
+  //else
     inherited;
 end;
 
@@ -422,10 +502,28 @@ begin
   else SetBoolDest(dest, True);
 end;
 
-procedure TNoneObject.LT(other:TEpObject; var dest:TEpObject); begin SetBoolDest(dest, False); end;
-procedure TNoneObject.GT(other:TEpObject; var dest:TEpObject); begin SetBoolDest(dest, False); end;
-procedure TNoneObject.LE(other:TEpObject; var dest:TEpObject); begin SetBoolDest(dest, False); end;
-procedure TNoneObject.GE(other:TEpObject; var dest:TEpObject); begin SetBoolDest(dest, False); end;
+procedure TNoneObject.LT(other:TEpObject; var dest:TEpObject);
+begin
+  if other is TNoneObject then SetBoolDest(dest, False)
+  else SetBoolDest(dest, True);
+end;
+
+procedure TNoneObject.GT(other:TEpObject; var dest:TEpObject);
+begin
+  SetBoolDest(dest, False);
+end;
+
+procedure TNoneObject.LE(other:TEpObject; var dest:TEpObject);
+begin
+  if other is TNoneObject then SetBoolDest(dest, True)
+  else SetBoolDest(dest, False);
+end;
+
+procedure TNoneObject.GE(other:TEpObject; var dest:TEpObject);
+begin
+  if other is TNoneObject then SetBoolDest(dest, True)
+  else SetBoolDest(dest, False);
+end;
 
 procedure TNoneObject.LOGIC_AND(other:TEpObject; var dest:TEpObject); begin SetBoolDest(dest, False and other.AsBool); end;
 procedure TNoneObject.LOGIC_OR(other:TEpObject; var dest:TEpObject);  begin SetBoolDest(dest, False  or other.AsBool); end;
@@ -437,6 +535,16 @@ procedure TNoneObject.LOGIC_NOT(var dest:TEpObject);                  begin SetB
 constructor TBoolObject.Create(AValue:Boolean);
 begin
   self.Value := AValue;
+end;
+
+function TBoolObject.Copy: TEpObject;
+begin
+  Result := TGarbageCollector(GC).AllocBool(self.value);
+end;
+
+function TBoolObject.DeepCopy: TEpObject;
+begin
+  Result := TGarbageCollector(GC).AllocBool(self.value);
 end;
 
 function TBoolObject.AsBool: Boolean;
@@ -554,6 +662,16 @@ end;
 constructor TCharObject.Create(AValue:epChar);
 begin
   self.Value := AValue;
+end;
+
+function TCharObject.Copy: TEpObject;
+begin
+  Result := TGarbageCollector(GC).AllocChar(self.value);
+end;
+
+function TCharObject.DeepCopy: TEpObject;
+begin
+  Result := TGarbageCollector(GC).AllocChar(self.value);
 end;
 
 function TCharObject.AsBool: Boolean;
@@ -675,6 +793,16 @@ end;
 constructor TIntObject.Create(AValue:epInt);
 begin
   self.Value := AValue;
+end;
+
+function TIntObject.Copy: TEpObject;
+begin
+  Result := TGarbageCollector(GC).AllocInt(self.value);
+end;
+
+function TIntObject.DeepCopy: TEpObject;
+begin
+  Result := TGarbageCollector(GC).AllocInt(self.value);
 end;
 
 function TIntObject.AsBool: Boolean;
@@ -943,6 +1071,16 @@ begin
   self.Value := AValue;
 end;
 
+function TFloatObject.Copy: TEpObject;
+begin
+  Result := TGarbageCollector(GC).AllocFloat(self.value);
+end;
+
+function TFloatObject.DeepCopy: TEpObject;
+begin
+  Result := TGarbageCollector(GC).AllocFloat(self.value);
+end;
+
 function TFloatObject.AsBool: Boolean;
 begin
   Result := self.Value <> 0;
@@ -1180,6 +1318,16 @@ begin
   self.Value := AValue;
 end;
 
+function TStringObject.Copy: TEpObject;
+begin
+  Result := TGarbageCollector(GC).AllocString(self.value);
+end;
+
+function TStringObject.DeepCopy: TEpObject;
+begin
+  Result := TGarbageCollector(GC).AllocString(self.value);
+end;
+
 function TStringObject.AsChar: epChar;
 begin
   if Length(self.value) = 1 then
@@ -1268,17 +1416,26 @@ begin
   self.Value := AValue;
 end;
 
-destructor TListObject.Destroy;
-var i:Int32;
+function TListObject.Release: Boolean;
 begin
-  for i:=0 to High(self.value) do
-    if (self.value[i] is TNoneObject) or
-      ((self.value[i] is TListObject) and (Pointer(TListObject(self.value[i]).value) = Pointer(self.value))) then
-      (*do nothing*)
-    else
-      self.value[i].Free;
+  Result := False;
+end;
 
-  inherited;
+function TListObject.Copy: TEpObject;
+begin
+  Result := self; //refobject, ya know
+end;
+
+function TListObject.DeepCopy: TEpObject;
+var
+  i:Int32;
+  tmp:TObjectArray;
+begin
+  SetLength(tmp, Length(self.value));
+  for i:=0 to High(self.value) do
+    tmp[i] := self.value[i].DeepCopy();
+
+  Result := TGarbageCollector(GC).AllocList(tmp);
 end;
 
 function TListObject.AsString: epString;
@@ -1287,7 +1444,10 @@ begin
   Result := '[';
   for i:=0 to High(self.value) do
   begin
-    Result += self.value[i].AsString;
+    if (Pointer(self.value[i]) = Pointer(self)) then
+      Result += '[...]'
+    else
+      Result += self.value[i].AsString;
     if i <> High(self.value) then Result += ',';
   end;
   Result += ']';
@@ -1300,22 +1460,19 @@ end;
 
 procedure TListObject.ASGN(other:TEpObject; var dest:TEpObject);
 begin
-  if other is TListObject then
-    self.value := TListObject(other).value
-  else
+  //if other is TListObject then
+  //  self.value := TListObject(other).value
+  //else
     inherited;
 end;
 
 procedure TListObject.INPLACE_ADD(other:TEpObject);
 var
   l:Int32;
-  dest:TEpObject;
 begin
-  L := Length(self.value);
-  SetLength(self.value, L+1);
-  dest := TEpObject.Create();
-  dest.ASGN(other, dest);
-  self.value[L] := dest;
+  l := Length(self.value);
+  SetLength(self.value, l+1);
+  self.value[l] := other.Copy();
 end;
 
 
@@ -1355,47 +1512,37 @@ end;
 
 
 {=============================================================================}
-// Pointer object
-{=============================================================================}
-constructor TPointerObject.Create(AValue:Pointer);
-begin
-  self.value := AValue;
-end;
-
-function TPointerObject.AsString: epString;
-begin
-  Result := Lowercase('0x'+IntToHex(PtrUInt(self.value), SizeOf(Pointer)*2));
-end;
-
-procedure TPointerObject.ASGN(other:TEpObject; var dest:TEpObject);
-begin
-  if other is TPointerObject then
-    self.value := TPointerObject(other).value
-  else
-    inherited;
-end;
-
-
-{=============================================================================}
 // Function object
 {=============================================================================}
-constructor TFuncObject.Create(AName:epString; ProgCounter:Int32);
+constructor TFuncObject.Create(AName:epString; ACodePos:Int32; AVarRange:TIntRange);
 begin
   self.Name := AName;
-  self.PC   := ProgCounter;
+  self.CodePos := ACodePos;
+  self.VarRange := AVarRange;
+end;
+
+function TFuncObject.Copy: TEpObject;
+begin
+  Result := TGarbageCollector(GC).AllocFunc(self.Name, self.CodePos, self.VarRange);
+end;
+
+function TFuncObject.DeepCopy: TEpObject;
+begin
+  Result := TGarbageCollector(GC).AllocFunc(self.Name, self.CodePos, self.VarRange);
 end;
 
 function TFuncObject.AsString: epString;
 begin
-  Result := Lowercase('func('+self.Name+') @ '+IntToStr(pc));
+  Result := Lowercase('Func('+self.Name+') @ '+IntToHex(self.CodePos, 8));
 end;
 
 procedure TFuncObject.ASGN(other:TEpObject; var dest:TEpObject);
 begin
   if other is TFuncObject then
   begin
-    self.Name := TFuncObject(other).Name;
-    self.pc   := TFuncObject(other).pc;
+    self.Name     := TFuncObject(other).Name;
+    self.CodePos  := TFuncObject(other).CodePos;
+    self.VarRange := TFuncObject(other).VarRange;
   end
   else
     inherited;

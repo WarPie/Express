@@ -14,5 +14,18 @@ for(i:=0; i < 3; i++) do
 end;
 *)
 
-var k := 0;
-while(k < 1000000) k += 1;
+// while loop
+var w := 0;
+while(w < 100) w += 1;
+print w = 100;
+
+// for loop
+for(w:=0; w < 100; w++) (* nothing *);
+print w = 100;
+
+// repeat
+w := 0;
+repeat
+  w++
+until (w = 100);
+print w = 100;

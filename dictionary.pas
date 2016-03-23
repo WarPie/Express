@@ -34,10 +34,9 @@ interface
 uses
   Classes, SysUtils;
 
-
 const
   // Minimum size of the dictionary - must be a power of 2
-  DICT_MIN_SIZE = 32;
+  DICT_MIN_SIZE = 128;
 
   // The basic growth strategy
   // EG: 2 means that it will double the size every time it resizes
@@ -58,11 +57,12 @@ type
 
   TDictionary<K,V> = class
   public type
+    PtrV         = ^V;
     TSelfType    = TDictionary<K,V>;
     THashElement = record key:K; val:V; end;
     THashBucket  = array of THashElement;
-    THash = function(constref key:K): UInt32;
-    TMap  = array of THashBucket;
+    TMap         = array of THashBucket;
+    THash        = function(constref key:K): UInt32;
   private
     FData: TMap;         //map
     FSize: UInt32;       //num items
@@ -73,7 +73,8 @@ type
 
     procedure _growRebuild(); inline;
     function _addItem(h:UInt32; key:K; value:V; checkResize:Boolean=True): Boolean; inline;
-    function _delItem(pos:THashIndex; key:K): Boolean; inline;
+    function _delItem(pos:THashIndex): Boolean; overload; inline;
+    function _delItem(hash,idx:UInt32): Boolean; overload; inline;
   public
     // create
     constructor Create(AHashFunc:THash);
@@ -119,6 +120,9 @@ type
 
     // Look up a key. Returns the given default value if not found.
     function GetDef(key:K; default:V): V; inline;
+    
+    // Look up a key. Returns the given default value if not found.
+    function GetRef(key:K): PtrV; inline;
 
     // Removes the given key, will return False if it doesn't exist.
     //
@@ -147,6 +151,9 @@ type
 
     // Sets whether the map can (automatically) resize, or not (Default = True);
     property Resizable:Boolean read FResizable write FResizable;
+
+    // Should not be modified unless you know what you are doing
+    property Size:UInt32 read FHigh write FHigh;
   end;
 
 
@@ -156,6 +163,7 @@ function HashByte(constref k: Byte): UInt32; inline;
 function HashInt32(constref k: Int32): UInt32; inline;
 function HashInt64(constref k: Int64): UInt32; inline;
 function HashNative(constref k: NativeInt): UInt32; inline;
+function HashPointer(constref k: PtrUInt): UInt32; inline;
 function HashStr(constref k: string): UInt32; inline;
 
 
@@ -183,6 +191,11 @@ begin
 end;
 
 function HashNative(constref k: NativeInt): UInt32;
+begin
+  Result := k;
+end;
+
+function HashPointer(constref k: PtrUInt): UInt32;
 begin
   Result := k;
 end;
@@ -312,7 +325,7 @@ begin
 end;
 
 
-function TDictionary<K,V>._delItem(pos:THashIndex; key: K): Boolean;
+function TDictionary<K,V>._delItem(pos:THashIndex): Boolean;
 var
   l: Int32;
 begin
@@ -320,6 +333,17 @@ begin
   if pos.idx <> l then
     FData[pos.hash][pos.idx] := FData[pos.hash][l];
   SetLength(FData[pos.hash], l);
+  Dec(FHigh);
+  Result := True;
+end;
+
+function TDictionary<K,V>._delItem(hash,idx:UInt32): Boolean;
+var
+  l: Int32;
+begin
+  l := High(FData[hash]);
+  if idx <> l then FData[hash][idx] := FData[hash][l];
+  SetLength(FData[hash], l);
   Dec(FHigh);
   Result := True;
 end;
@@ -399,13 +423,20 @@ begin
   Result := FData[pos.hash][pos.idx].val;
 end;
 
+function TDictionary<K,V>.GetRef(key: K): PtrV;
+var pos: THashIndex;
+begin
+  if not Find(key, pos) then Exit(nil);
+  Result := @FData[pos.hash][pos.idx].val;
+end;
+
 
 function TDictionary<K,V>.Remove(key: K): Boolean;
 var pos: THashIndex;
 begin
   if not Find(key, pos) then Exit(False);
 
-  Result := _delItem(pos, key);
+  Result := _delItem(pos);
 end;
 
 

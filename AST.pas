@@ -223,6 +223,15 @@ type
     procedure Compile(ctx: TCompilerContext); override;
   end;
 
+  (* repeat loop *)
+  TRepeat = class(TBaseNode)
+    Condition: TBaseNode;
+    Body: TBlock;
+    constructor Create(ACond:TBaseNode; ABody:TBlock; DocPos: TDocPos); virtual; reintroduce;
+    function ToString: string; override;
+    procedure Compile(ctx: TCompilerContext); override;
+  end;
+
   (* for loop *)
   TFor = class(TBaseNode)
     Stmt1,Stmt2,Stmt3: TBaseNode;
@@ -234,8 +243,8 @@ type
 
   (* print statement *)
   TPrint = class(TBaseNode)
-    Expr: TBaseNode;
-    constructor Create(AExpr:TBaseNode; DocPos: TDocPos); virtual; reintroduce;
+    Exprs: TNodeArray;
+    constructor Create(AExprs:TNodeArray; DocPos: TDocPos); virtual; reintroduce;
     function ToString:string; override;
     procedure Compile(ctx: TCompilerContext); override;
   end;
@@ -423,9 +432,9 @@ begin
 end;
 
 procedure TConstBool.Compile(ctx: TCompilerContext);
-var obj:TBoolObject;
+var obj:TEpObject;
 begin
-  obj := TBoolObject.Create(Value);
+  obj := ctx.GC.AllocBool(Value);
   ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
@@ -442,9 +451,9 @@ begin
 end;
 
 procedure TConstChar.Compile(ctx: TCompilerContext);
-var obj:TCharObject;
+var obj:TEpObject;
 begin
-  obj := TCharObject.Create(Value);
+  obj := ctx.GC.AllocChar(Value);
   ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
@@ -459,9 +468,9 @@ begin
 end;
 
 procedure TConstInt.Compile(ctx: TCompilerContext);
-var obj:TIntObject;
+var obj:TEpObject;
 begin
-  obj := TIntObject.Create(Value);
+  obj := ctx.GC.AllocInt(Value);
   ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
@@ -470,15 +479,15 @@ end;
 *)
 constructor TConstFloat.Create(AValue:String; DocPos: TDocPos);
 begin
-  StrVal := AValue;
-  Value  := StrToFloatDot(AValue);
+  StrVal  := AValue;
+  Value   := StrToFloatDot(AValue);
   FDocPos := DocPos;
 end;
 
 procedure TConstFloat.Compile(ctx: TCompilerContext);
-var obj:TFloatObject;
+var obj:TEpObject;
 begin
-  obj := TFloatObject.Create(Value);
+  obj := ctx.GC.AllocFloat(Value);
   ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
@@ -492,9 +501,9 @@ begin
 end;
 
 procedure TConstString.Compile(ctx: TCompilerContext);
-var obj:TStringObject;
+var obj:TEpObject;
 begin
-  obj := TStringObject.Create(StrVal);
+  obj := ctx.GC.AllocString(StrVal);
   ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
@@ -556,6 +565,9 @@ end;
     Fix for recursion, every time the function is called
     the local vars has to be re-allocated (somehow)..
     Sadly this will add a major overhead -.-'
+
+    Edit: I've made temp patch that leaks A LOT, but whatever..
+    New To-do: Check for a more proper solution.
 *)
 constructor TFunction.Create(AName:string; AParams:TVarArray; AProg:TBlock; DocPos: TDocPos);
 begin
@@ -574,17 +586,23 @@ procedure TFunction.Compile(ctx: TCompilerContext);
 var
   dest,funcStart,i,funcID:Int32;
   funcObj: TFuncObject;
+  varRange: TIntRange;
 var
   oldNameMap, funcNameMap: TStringToIntMap;
 begin
   funcID := ctx.RegisterVar(Name);
 
+  //store current context state
   oldNameMap  := ctx.Vars.NamesToNumbers;
+
   funcNameMap := oldNameMap.Copy();
+
 
   //set context to our function and compile
   begin
+    varRange.Low := Length(ctx.Vars.Names);
     ctx.Vars.NamesToNumbers := funcNameMap;
+
     ctx.PreparePatch(True, 'FUNCTION['+Name+']');
     ctx.Emit(opcodes.__FUNC, -1, FDocPos);
     funcStart := ctx.CodeSize;
@@ -601,7 +619,8 @@ begin
     ctx.Emit(opcodes.LOAD_CONST, ctx.GetNone(), FDocPos);
     ctx.Emit(opcodes.RETURN, 0, FDocPos);
 
-    funcObj := TFuncObject.Create(Name, funcStart);
+    varRange.High := High(ctx.Vars.Names);
+    funcObj := ctx.GC.AllocFunc(Name, funcStart, varRange) as TFuncObject;
 
     ctx.RunPatch(opcodes.__FUNC, opcodes.JMP_FORWARD, ctx.CodeSize());
     ctx.PopPatch(True, 'END_FUNCTION');
@@ -691,7 +710,7 @@ begin
   for i:=0 to l-1 do
     Expressions[i].Compile(ctx);
 
-  ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(TIntObject.Create(l)), FDocPos);
+  ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(ctx.GC.AllocInt(l)), FDocPos);
   ctx.Emit(opcodes.BUILD_LIST, dest, FDocPos);
 end;
 
@@ -918,6 +937,43 @@ begin
 end;
 
 (*
+  while (condition) do <stmts> end
+  while (condition) <stmt>
+*)
+constructor TRepeat.Create(ACond:TBaseNode; ABody:TBlock; DocPos: TDocPos);
+begin
+  Condition := ACond;
+  Body    := Abody;
+  FDocPos := DocPos;
+end;
+
+function TRepeat.ToString: string;
+begin
+  Result := 'Repeat('+ Body.ToString +', '+ Condition.ToString +')';
+end;
+
+procedure TRepeat.Compile(ctx: TCompilerContext);
+var
+  before,after:Int32;
+begin
+  ctx.PreparePatch();
+
+  before := ctx.CodeSize();
+  //repeat -->
+  Body.Compile(ctx);
+  //<-- until -->
+  Condition.Compile(ctx);
+  after := ctx.Emit(opcodes.JMP_IF_TRUE,0,Condition.FDocPos);
+  ctx.Emit(opcodes.JMP_BACK, before, Condition.FDocPos);
+  //<--
+  ctx.PatchArg(after, ctx.CodeSize());
+
+  ctx.RunPatch(__CONTINUE, opcodes.JMP_FORWARD, before);
+  ctx.RunPatch(__BREAK, opcodes.JMP_FORWARD, ctx.CodeSize());
+  ctx.PopPatch();
+end;
+
+(*
   for (stmt1,stmt2,stmt3) do <stmts> end
   for (stmt1,stmt2,stmt3) <stmt>
 *)
@@ -968,21 +1024,23 @@ end;
 (*
   print <something>
 *)
-constructor TPrint.Create(AExpr:TBaseNode; DocPos: TDocPos);
+constructor TPrint.Create(AExprs:TNodeArray; DocPos: TDocPos);
 begin
-  Expr := AExpr;
+  Exprs := AExprs;
   FDocPos := DocPos;
 end;
 
 function TPrint.ToString: string;
 begin
-  Result := 'Print('+Expr.ToString+')';
+  Result := 'Print(...)';
 end;
 
 procedure TPrint.Compile(ctx: TCompilerContext);
+var i:Int32;
 begin
-  Expr.Compile(ctx);
-  ctx.Emit(opcodes.PRINT, 0, Expr.FDocPos);
+  for i:=0 to High(Exprs) do
+    Exprs[i].Compile(ctx);
+  ctx.Emit(opcodes.PRINT, Length(Exprs), FDocPos);
 end;
 
 

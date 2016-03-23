@@ -18,8 +18,8 @@ type
   PepInt = ^epInt;
   epInt  = Int64;
   PepChar  = ^epChar;
-  epChar   = WideChar;
-  epString = WideString;
+  epChar   = Char;
+  epString = String;
   //
   
   TPointerArray = array of Pointer;

@@ -12,10 +12,13 @@ interface
 uses
   Classes,
   SysUtils,
-  datatypes,
   express,
-  bytecode,
-  opcodes;
+  datatypes,
+  bytecode;
+
+const
+  STACK_MIN_SIZE   = 16;
+  STACK_MULTIPLIER = 2;
 
 type
   TFrame = record
@@ -32,14 +35,18 @@ type
     function StackToString: String;
   end;
 
+  TCallerData = record
+    vars: TObjectArray;
+    varStart, pc: Int32;
+  end;
+
   TCallStack = record
-  public
-    Stack: TIntArray;
+    Stack: array of TCallerData;
     StackPos: Int32;
     procedure Init;
 
-    procedure Push(constref pc: Int32); inline;
-    procedure Reset(var pc: Int32); inline;
+    procedure Push(constref vars:TObjectArray; constref pc, varStart: Int32);
+    procedure Reset(var pc: Int32; var bcVars:TObjectArray); inline;
   end;
 
   TInterpreter = class(TObject)
@@ -51,20 +58,36 @@ type
   public
     constructor Create(bc:TBytecode);
     destructor Destroy; override;
-    procedure BuildList(var dest:TEpObject); inline;
+
+    procedure CollectGarbage(); inline;
     procedure ExecuteSafe;
     procedure Execute;
+
+    procedure CallFunction(func:TFuncObject; counter:Int32); inline;
+    procedure BuildList(var dest:TEpObject); inline;
+    procedure PrintStatement(n:Int32); inline;
   end;
 
-const
-  STACK_MIN_SIZE   = 16;
-  STACK_MULTIPLIER = 2;
-
+procedure PrintFunc(exprs:TObjectArray);
 
 implementation
 
 uses
-  utils, errors;
+  utils, errors, opcodes;
+
+
+procedure PrintFunc(exprs:TObjectArray);
+var
+  str:epString;
+  i:Int32;
+begin
+  for i:=0 to High(exprs) do
+  begin
+    str += exprs[i].AsString;
+    if i < High(exprs) then str += ' ';
+  end;
+  WriteLn(str);
+end;
 
 
 procedure TFrame.Init;
@@ -75,16 +98,22 @@ end;
 
 procedure TFrame.Push(value: TEpObject);
 begin
+  Assert(value <> nil);
+
   if StackPos = High(Stack) then
     SetLength(Stack, Length(stack) * STACK_MULTIPLIER);
+
+  Assert(StackPos+1<Length(stack), 'Stack overflow');
   Inc(StackPos);
   Stack[StackPos] := value;
 end;
 
 function TFrame.Pop: TEpObject;
 begin
+  Assert(StackPos>-1, 'Stack underflow');
   Result := Stack[StackPos];
   Dec(StackPos);
+  Assert(Result <> nil);
 end;
 
 procedure TFrame.Popn(n:Int32; var dest:TObjectArray);
@@ -98,11 +127,15 @@ end;
 
 function TFrame.Top: TEpObject;
 begin
+  Assert((StackPos>-1) and (StackPos<Length(Stack)), 'Corrupted stack');
   Result := Stack[StackPos];
+  Assert(Result <> nil);
 end;
 
 procedure TFrame.SetTop(value: TEpObject);
 begin
+  Assert(value <> nil);
+  Assert((StackPos>-1) and (StackPos<Length(Stack)), 'Corrupted stack');
   Stack[StackPos] := value;
 end;
 
@@ -130,25 +163,35 @@ begin
   StackPos := -1;
 end;
 
-procedure TCallStack.Push(constref pc: Int32);
+procedure TCallStack.Push(constref vars:TObjectArray; constref pc, varStart: Int32);
 begin
   if StackPos = High(Stack) then
     SetLength(Stack, Length(stack) * STACK_MULTIPLIER);
 
   Inc(StackPos);
-  Stack[StackPos] := pc;
+  Stack[StackPos].pc := pc;
+  Stack[StackPos].vars  := vars;
+  Stack[StackPos].varStart := varStart;
 end;
 
-procedure TCallStack.Reset(var pc: Int32);
+procedure TCallStack.Reset(var pc: Int32; var bcVars:TObjectArray);
+var
+  top:TCallerData;
+  i:Int32;
 begin
-  pc := Stack[StackPos];
+  top := Stack[StackPos];
+  pc  := top.pc;
+  for i:=0 to High(top.vars) do
+  begin
+    Assert(top.vars[i] <> nil);
+    bcVars[top.varStart+i] := top.vars[i];
+  end;
   Dec(StackPos);
 end;
 
 
-
 (*
-  An executable object
+  Interpreter
 *)
 constructor TInterpreter.Create(bc:TBytecode);
 begin
@@ -159,34 +202,30 @@ begin
 end;
 
 destructor TInterpreter.Destroy;
-var i:Int32;
 begin
-  //for i:=0 to High(Frame.Vars) do
-  //  Ep_DecRef(Frame.Vars[i]);
-  if not Bytecode.IsChild then
-    Bytecode.Free;
-
+  Bytecode.Free;
   inherited;
 end;
 
-procedure TInterpreter.BuildList(var dest:TEpObject);
-var
-  list:TListObject;
-  arr :TObjectArray;
-  argCount:TIntObject;
-  i:Int32;
+procedure TInterpreter.CollectGarbage();
+var g,i:Int32;
 begin
-  argCount := Frame.Pop() as TIntObject;
-  SetLength(arr, argCount.value);
-  for i:=1 to argCount.value do
-    arr[argCount.value-i] := Frame.Pop;
+  if Bytecode.GC.CountDown[0] > 0 then
+    Exit;
 
-  list := TListObject.Create(arr);
-  dest.ASGN(list, dest);
-  Frame.Push(dest);
+  for g:=0 to High(Bytecode.GC.CountDown) do
+    if Bytecode.GC.CountDown[g] <= 0 then
+    begin
+      // mark the following variables so they don't go away
+      for i:=0 to CallStack.StackPos do
+        Bytecode.GC.Mark(g, CallStack.Stack[i].vars, High(CallStack.Stack[i].vars));
+      Bytecode.GC.Mark(g, Frame.Stack, Frame.StackPos);
+      Bytecode.GC.Mark(g, Bytecode.Variables, High(Bytecode.Variables));
+      Bytecode.GC.Mark(g, Bytecode.Constants, High(Bytecode.Constants));
 
-  SetLength(list.value, 0);
-  list.Free;
+      //remove everything that wasn't marked, promote the remainders to another generation (when possible)
+      Bytecode.GC.Sweep(g);
+    end;
 end;
 
 procedure TInterpreter.ExecuteSafe;
@@ -202,6 +241,7 @@ begin
   pc := 0;
   while True do
   begin
+    CollectGarbage();
     op := Bytecode.Code[pc];
     Inc(pc);
     case op.code of
@@ -217,9 +257,12 @@ begin
       (* jumps *)
       JMP_IF_FALSE:
         if (not frame.pop().AsBool) then pc := op.arg;
-      JUMP,JMP_BACK,JMP_FORWARD:
+      JMP_IF_TRUE:
+        if (frame.pop().AsBool) then pc := op.arg;
+      JUMP, JMP_BACK, JMP_FORWARD:
         pc := op.arg;
 
+      (* ... *)
       ASGN:
         begin
           right := frame.Pop();
@@ -433,35 +476,87 @@ begin
               Frame.Push(tmp);
           end else *)
           begin
-            CallStack.Push(pc);
-            pc := TFuncObject(tmp).pc;
+            CallFunction(tmp as TFuncObject, PC);
+            pc := TFuncObject(tmp).codePos;
           end;
         end;
 
       PRINT:
-        begin
-          tmp := frame.Pop();
-          WriteLn(tmp.AsString);
-        end;
+        PrintStatement(op.arg);
 
       TIMENOW:
         begin
-          tmp := TFloatObject.Create(MarkTime());
+          tmp := Bytecode.GC.AllocFloat(MarkTime());
           Frame.Push(tmp);
         end;
 
       RETURN:
         begin
           if CallStack.StackPos >= 0 then
-            CallStack.Reset(pc)
+          begin
+            //Dec(Bytecode.GC.CountDown[0], Length(CallStack.Stack[CallStack.StackPos].vars));
+            CallStack.Reset(pc, bytecode.Variables)
+          end
           else
             Exit;
-        end
+        end;
+        
       else
         raise Exception.Create('Operation not implemented');
     end;
   end;
 end;
+
+
+(*
+  The code runs.. but a tad slow..
+*)
+procedure TInterpreter.CallFunction(func:TFuncObject; counter:Int32);
+var
+  i:Int32;
+  locals:TObjectArray;
+begin
+  SetLength(locals, func.VarRange.High - func.VarRange.Low + 1);
+  for i:=func.VarRange.Low to func.VarRange.High do
+  begin
+    locals[i-func.VarRange.Low] := Bytecode.Variables[i];
+    Bytecode.Variables[i]       := Bytecode.Constants[0];
+  end;
+
+  //Inc(Bytecode.GC.CountDown[0], Length(locals));
+  CallStack.Push(locals, counter, func.VarRange.Low);
+end;
+
+procedure TInterpreter.BuildList(var dest:TEpObject);
+var
+  arr :TObjectArray;
+  argCount:TIntObject;
+  i:Int32;
+begin
+  argCount := Frame.Pop() as TIntObject;
+  SetLength(arr, argCount.value);
+  for i:=1 to argCount.value do
+    arr[argCount.value-i] := Frame.Pop.Copy();
+
+  Bytecode.GC.Release(dest);
+  dest := Bytecode.GC.AllocList(arr);
+  Frame.Push(dest);
+end;
+
+procedure TInterpreter.PrintStatement(n:Int32);
+var
+  arr: TObjectArray;
+  i:Int32;
+begin
+  SetLength(arr, n);
+  for i:=1 to n do arr[n-i] := Frame.Pop;
+  PrintFunc(arr);
+end;
+
+
+
+
+
 
 (*
 function Interpret(source:String): TFrame;

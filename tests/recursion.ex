@@ -1,28 +1,24 @@
 (*
-func fibonacci(n)
-  //print n
-  if(n = 0)
-    return 0
-  else if(n = 1)
-    return 1
-  else
-    return (fibonacci(n - 1) + fibonacci(n - 2))
-end;
-
-print fibonacci(12)
-*)
-
-
-func recursion(n);
-  if (n = 10) then
-    var res := recursion(n-1) + recursion(n-2)
-    print n //oh snap! we have changed `n` to `7`
-    return res
+func recursion(m,n);
+  if (n >= m) then
+    return recursion(m, n-1) - 1
   else
     return n;
   end
 end;
 
-print recursion(10);
+recursion(6,1000);
+*)
+
+
+func fibonacci(n)
+  if(n <= 1)
+    return n
+  else
+    return (fibonacci(n - 1) + fibonacci(n - 2))
+end;
+
+print fibonacci(32)
+
 
 

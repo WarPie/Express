@@ -33,7 +33,7 @@ print '-----------------------'
 
 
 var myPrimeFunc := prime
-print myPrimeFunc(1000)
+print myPrimeFunc(5000)
 print '-----------------------'
 
 

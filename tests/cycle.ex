@@ -5,14 +5,11 @@ while(x < 10000000) do
 end;
 *)
 
-
-var x := 'Hello World';
-x[5] := '_';
-print x;
-
-var lst1 := None;
+var lst1,lst2 := [];
 for var i:=0; i < 100000; i++ do
-  lst1 := [lst1, [#112, 2*2, 3.0/2], None, False=True];
+  lst1 := [1,2,3,4,5,i];
+  lst1 += lst1;
+  lst2 := lst1;
+  lst1 := None;
 end;
-
-print lst1[0][0][0][0][0][0][0][0][0][0][1]
+print lst2

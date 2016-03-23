@@ -16,7 +16,7 @@ tt := time - tt
 
 i := 0;
 var t := time;
-while i < 1000000 do
+while i < 1000000 do (* slow as shit, but whatever... *)
   var x := sqr(i)
   i += 1
 end;
