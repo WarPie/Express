@@ -28,8 +28,10 @@ type
     FPos: Int32;
     FTokenizer: TTokenizer;
 
+    FLooping:Int32;
+
  {flags}
-    FLooping, OldLineInsenstive, FLineInsenstive: Boolean;
+    OldLineInsenstive, FLineInsenstive: Boolean;
   public
     constructor Create(T:TTokenizer);
     function Parse(): TBaseNode; inline;
@@ -109,7 +111,7 @@ constructor TParser.Create(T:TTokenizer);
 begin
   FTokenizer := T;
   FPos := 0;
-  FLooping := False;
+  FLooping := 0;
   FLineInsenstive := False;
 end;
 
@@ -427,14 +429,14 @@ begin
   else
     Expect(keyword('do'));
 
-  FLooping := True;
+  Inc(FLooping);
   if NextIf(keyword('do')) then
     body := TBlock.Create(ParseStatements(['end'], True), DocPos)
   else
     body := TBlock.Create(self.ParseStatement(), DocPos);
 
   Result := TWhile.Create(Condition, body, DocPos);
-  FLooping := False;
+  Dec(FLooping);
 end;
 
 (*REPEAT LOOP:
@@ -446,9 +448,9 @@ var
   body:TBlock;
 begin
   ExpectAndInc('repeat');
-  FLooping := True;
+  Inc(FLooping);
   body := TBlock.Create(ParseStatements(['until'], True), DocPos);
-  FLooping := False;
+  Dec(FLooping);
 
   ExpectAndInc(lparen, PostInc);
   Condition := ParseExpression(False);
@@ -485,14 +487,14 @@ begin
   else
     Expect(Keyword('do'));
 
-  FLooping := True;
+  Inc(FLooping);
   if NextIf(keyword('do')) then
     body := TBlock.Create(ParseStatements(['end'], True), DocPos)
   else
     body := TBlock.Create(ParseStatement(), DocPos);
 
   Result := TFor.Create(stmt1,stmt2,stmt3, body as TBlock, DocPos);
-  FLooping := False;
+  Dec(FLooping);
 end;
 
 
@@ -729,12 +731,12 @@ begin
     //else if (Current.value = 'repeat') then
     //  result := ParseRepeat()
     else if (Current.value = 'continue') then
-      if not FLooping then
+      if FLooping = 0 then
         RaiseExceptionFmt(eNotAllowedOutsideLoop, ['`continue`'])
       else
         Result := ParseContinue()
     else if (Current.value = 'break') then
-      if not FLooping then
+      if FLooping = 0 then
         RaiseExceptionFmt(eNotAllowedOutsideLoop, ['`break`'])
       else
         Result := ParseBreak()

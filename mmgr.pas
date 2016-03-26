@@ -16,61 +16,116 @@ uses
   datatypes;
 
 const
-  DEFAULT_TEMP_SIZE = 4096;
+  //base array size of a temp storage used when moving objects between generations.
+  DEFAULT_TEMP_SIZE = $1000; //4K
+
+  POOL_MIN_SIZE   = $10000; //65k
+  POOL_MULTIPLIER = 2;
+
 
 type
-  TGCGeneration = specialize TDictionary<PtrUInt, Boolean>;
-  
+  TGCLookup = specialize TDictionary<PtrUInt, Boolean>;
+
+  PMemoryPool = ^TMemoryPool;
+  TMemoryPool = record
+    Pool: array of TEpObject;
+    PoolPos: Int32;
+    procedure Init;
+    procedure Add(T: TEpObject); inline;
+    procedure Unset(H:UInt32); inline;
+    procedure Reset; inline;
+    function Contains(T: TEpObject): Boolean; inline;
+  end;
+
   TGarbageCollector = class
     Threshold: Array [0..2] of Int32;
     CountDown: Array [0..2] of Int32;
-    Gen:       Array [0..2] of TGCGeneration;
-    
-    temp:TObjectArray;
-    tempPos: Int32;
+    Gen:       Array [0..2] of TMemoryPool;
+    Lookup: TGCLookup;
+
+    Temp:TObjectArray;
+    TempPos: Int32;
 
     constructor Create();
     destructor Destroy(); override;
+    function ShouldEnter: Boolean; inline;
 
-    procedure Mark(genId:Int32; root:TObjectArray; top:Int32);
-    procedure Sweep(genId:Int32);
+    procedure PrepareCollection(genId:Int8); inline;
+    procedure Mark(genId:Int8; root:TObjectArray; top:Int32; marked:PtrUInt=0);
+    procedure Sweep(genId:Int8);
     
     (* alloc and free *)
-    function AllocNone(): TEpObject; //inline;
-    function AllocBool(constref v:Boolean): TEpObject; //inline;
-    function AllocChar(constref v:epChar): TEpObject; //inline;
-    function AllocInt(constref v:epInt): TEpObject; //inline;
-    function AllocFloat(constref v:Double): TEpObject; //inline;
-    function AllocString(constref v:epString): TEpObject; //inline;
-    function AllocList(constref v:TObjectArray): TEpObject; //inline;
-    function AllocFunc(n:epString; p:Int32; r:TIntRange): TEpObject; //inline;
+    function AllocNone(gcGen:Int8=0): TEpObject; //inline;
+    function AllocBool(constref v:Boolean; gcGen:Int8=0): TEpObject; //inline;
+    function AllocChar(constref v:epChar; gcGen:Int8=0): TEpObject; //inline;
+    function AllocInt(constref v:epInt; gcGen:Int8=0): TEpObject; //inline;
+    function AllocFloat(constref v:Double; gcGen:Int8=0): TEpObject; //inline;
+    function AllocString(constref v:epString; gcGen:Int8=0): TEpObject; //inline;
+    function AllocList(constref v:TObjectArray; gcGen:Int8=0): TEpObject; //inline;
+    function AllocFunc(n:epString; p:Int32; r:TIntRange; gcGen:Int8=0): TEpObject; //inline;
     procedure Release(var T:TEpObject); inline;
   end;
-
 
 implementation
 
 uses utils;
 
-constructor TGarbageCollector.Create();
+
+procedure TMemoryPool.Init;
 begin
-  THRESHOLD[0] := 9000; //`n` allocations before G0 checked (allocations - deallocations)
-  THRESHOLD[1] := 30;   //`n` times of G0 before G1 checked (survivors are moved to G2)
-  THRESHOLD[2] := 30;   //`n` times of G1 before G2 checked (objects stay here)
+  SetLength(Pool, POOL_MIN_SIZE);
+  PoolPos := -1;
+end;
 
-  Gen[0] := TGCGeneration.Create(@HashPointer);
-  Gen[0].SetSize(8000);
+procedure TMemoryPool.Add(T: TEpObject);
+begin
+  Assert(T <> nil);
 
-  Gen[1] := TGCGeneration.Create(@HashPointer);
-  Gen[1].SetSize(4000);
-  
-  Gen[2] := TGCGeneration.Create(@HashPointer);
-  Gen[2].SetSize(1000);
-  
+  if PoolPos = High(Pool) then
+    SetLength(Pool, Length(Pool) * POOL_MULTIPLIER);
+
+  Inc(PoolPos);
+  Pool[PoolPos] := T;
+  T.Handle := PoolPos;
+end;
+
+procedure TMemoryPool.Unset(H:UInt32);
+begin
+  Pool[H] := Pool[PoolPos];
+  Pool[H].Handle := H;
+  Dec(PoolPos);
+end;
+
+procedure TMemoryPool.Reset;
+begin
+  SetLength(Pool, POOL_MIN_SIZE);
+  PoolPos := -1;
+end;
+
+function TMemoryPool.Contains(T: TEpObject): Boolean;
+begin
+  Result := (T.Handle <= PoolPos) and (PtrUInt(Pool[T.Handle]) = PtrUInt(T));
+end;
+
+
+
+constructor TGarbageCollector.Create();
+var i:Int32;
+begin
+  THRESHOLD[0] := 8000;  //items must be allocated before G0 is checked
+  THRESHOLD[1] := 10;    //`n` times of G0 before G1 is checked (survivors are moved to G2)
+  THRESHOLD[2] := 10;    //`n` times of G1 before G2 is checked (objects stay here)
+
+  for i:=0 to 2 do
+    Gen[i].Init;
+
   CountDown[0] := THRESHOLD[0];
   CountDown[1] := THRESHOLD[1];
   CountDown[2] := THRESHOLD[2];
-  
+
+  Lookup := TGCLookup.Create(@HashPointer);
+  Lookup.SetSize(POOL_MIN_SIZE-1);
+
   tempPos := -1;
   SetLength(temp, DEFAULT_TEMP_SIZE);
 end;
@@ -80,22 +135,40 @@ var g,i,j:Int32;
 begin
   for g:=0 to High(Gen) do
   begin
-    for i:=0 to High(Gen[g].Items) do
-      for j:=0 to High(Gen[g].Items[i]) do
-        TEpObject(Gen[g].Items[i][j].key).Destroy();
-    Gen[g].Destroy;
+    for i:=0 to Gen[g].PoolPos do
+      if (Gen[g].Pool[i] <> nil) then
+        Gen[g].Pool[i].Destroy();
+    Gen[g].Reset;
   end;
-
   inherited;
 end;
 
-procedure TGarbageCollector.Mark(genId:Int32; root:TObjectArray; top:Int32);
+function TGarbageCollector.ShouldEnter: Boolean;
+begin
+  Result := CountDown[0] <= 0;
+end;
+
+procedure TGarbageCollector.PrepareCollection(genId:Int8);
+var i:Int32;
+begin
+  Lookup.Clear;
+  if POOL_MIN_SIZE > Gen[genId].PoolPos then
+    Lookup.SetSize(POOL_MIN_SIZE)
+  else
+    Lookup.SetSize(Gen[genId].PoolPos);
+
+  for i:=0 to gen[genId].PoolPos do
+    if (gen[genId].Pool[i] <> nil) then
+      Lookup[PtrUInt(gen[genId].Pool[i])] := True;
+end;
+
+procedure TGarbageCollector.Mark(genId:Int8; root:TObjectArray; top:Int32; marked:PtrUInt=0);
 var
-  i:Int32;
+  i: Int32;
 begin
   for i:=0 to top do
   begin
-    if Gen[genId].Remove(PtrUInt(root[i])) then
+    if Lookup.Remove( PtrUInt(root[i]) ) then
     begin
       if tempPos = High(temp) then
         SetLength(temp, Length(temp) * 2);
@@ -104,34 +177,33 @@ begin
     end;
 
     // if current is a container object (object with children), it may contain
-    // items in any other generation, so it should always be checked, this slows
-    // down the GC a bit (notably so if it's a large list)
-    if (root[i] is TListObject) then
-      Mark(genId, TListObject(root[i]).value, High(TListObject(root[i]).value));
+    // items in any other generation, so it should be checked even tho the list
+    // itself is not in our current generation.
+    if (root[i] is TListObject) and (PtrUInt(root[i]) <> marked) then
+      Mark(genId, TListObject(root[i]).value, High(TListObject(root[i]).value), PtrUInt(root[i]));
   end;
 end;
 
-procedure TGarbageCollector.Sweep(genId:Int32);
+procedure TGarbageCollector.Sweep(genId:Int8);
 var
-  curr:TGCGeneration;
-  i,j:Int32;
+  nextGen,i,j: Int32;
 begin
-  curr := Gen[genId];
-  for i:=0 to High(curr.Items) do
-  begin
-    for j:=0 to High(curr.Items[i]) do
-      TEpObject(curr.Items[i][j].key).Destroy();
-    curr.Size := curr.Size - Length(curr.Items[i]);
-    SetLength(curr.Items[i], 0);
-  end;
+  for i:=0 to High(Lookup.Items) do
+    for j:=0 to High(Lookup.Items[i]) do
+      TEpObject(Lookup.Items[i][j].key).Destroy();
 
-  if genId < High(gen) then curr := Gen[genId+1];
-  for i:=0 to tempPos do curr[PtrUInt(temp[i])] := True;
+  Gen[genId].Reset;
+  if genId < High(gen) then
+  begin
+    nextGen := genId+1;
+    Dec(CountDown[nextGen]);
+  end else
+    nextGen := genId;
+
+  for i:=0 to tempPos do
+    Gen[nextGen].Add(temp[i]);
 
   CountDown[genId] := THRESHOLD[genId];
-  if genId < High(gen) then
-    Dec(CountDown[genId+1]);
-
   tempPos := -1;
   SetLength(temp, DEFAULT_TEMP_SIZE);
 end;
@@ -140,75 +212,103 @@ end;
 (*
   allocation routines
 *)
-function TGarbageCollector.AllocNone(): TEpObject;
+function TGarbageCollector.AllocNone(gcGen:Int8=0): TEpObject;
 begin
+  if gcGen < 0 then gcGen := 0;
   Result := TNoneObject.Create();
   Result.gc := Pointer(self);
-  Gen[0].Add(PtrUInt(Result), True);
-  Dec(CountDown[0]);
+  Gen[gcGen].Add(Result);
+  if gcGen = 0 then Dec(CountDown[0]);
 end;
 
-function TGarbageCollector.AllocBool(constref v:Boolean): TEpObject;
+function TGarbageCollector.AllocBool(constref v:Boolean; gcGen:Int8=0): TEpObject;
 begin
+  if gcGen < 0 then gcGen := 0;
   Result := TBoolObject.Create(v);
   Result.gc := Pointer(self);
-  Gen[0].Add(PtrUInt(Result), True);
-  Dec(CountDown[0]);
+  Gen[gcGen].Add(Result);
+  if gcGen = 0 then Dec(CountDown[0]);
 end;
 
-function TGarbageCollector.AllocChar(constref v:epChar): TEpObject;
+function TGarbageCollector.AllocChar(constref v:epChar; gcGen:Int8=0): TEpObject;
 begin
+  if gcGen < 0 then gcGen := 0;
   Result := TCharObject.Create(v);
   Result.gc := Pointer(self);
-  Gen[0].Add(PtrUInt(Result), True);
-  Dec(CountDown[0]);
+  Gen[gcGen].Add(Result);
+  if gcGen = 0 then Dec(CountDown[0]);
 end;
 
-function TGarbageCollector.AllocInt(constref v:epInt): TEpObject;
+function TGarbageCollector.AllocInt(constref v:epInt; gcGen:Int8=0): TEpObject;
 begin
+  if gcGen < 0 then gcGen := 0;
   Result := TIntObject.Create(v);
   Result.gc := Pointer(self);
-  Gen[0].Add(PtrUInt(Result), True);
-  Dec(CountDown[0]);
+  Gen[gcGen].Add(Result);
+  if gcGen = 0 then Dec(CountDown[0]);
 end;
 
-function TGarbageCollector.AllocFloat(constref v:Double): TEpObject;
+function TGarbageCollector.AllocFloat(constref v:Double; gcGen:Int8=0): TEpObject;
 begin
+  if gcGen < 0 then gcGen := 0;
   Result := TFloatObject.Create(v);
   Result.gc := Pointer(self);
-  Gen[0].Add(PtrUInt(Result), True);
-  Dec(CountDown[0]);
+  Gen[gcGen].Add(Result);
+  if gcGen = 0 then Dec(CountDown[0]);
 end;
 
-function TGarbageCollector.AllocString(constref v:epString): TEpObject;
+function TGarbageCollector.AllocString(constref v:epString; gcGen:Int8=0): TEpObject;
 begin
+  if gcGen < 0 then gcGen := 0;
   Result := TStringObject.Create(v);
   Result.gc := Pointer(self);
-  Gen[0].Add(PtrUInt(Result), True);
-  Dec(CountDown[0]);
+  Gen[gcGen].Add(Result);
+  if gcGen = 0 then Dec(CountDown[0]);
 end;
 
-function TGarbageCollector.AllocList(constref v:TObjectArray): TEpObject;
+function TGarbageCollector.AllocList(constref v:TObjectArray; gcGen:Int8=0): TEpObject;
 begin
+  if gcGen < 0 then gcGen := 0;
   Result := TListObject.Create(v);
   Result.gc := Pointer(self);
-  Gen[0].Add(PtrUInt(Result), True);
-  Dec(CountDown[0]);
+  Gen[gcGen].Add(Result);
+  if gcGen = 0 then Dec(CountDown[0]);
 end;
 
-function TGarbageCollector.AllocFunc(n:epString; p:Int32; r:TIntRange): TEpObject;
+function TGarbageCollector.AllocFunc(n:epString; p:Int32; r:TIntRange; gcGen:Int8=0): TEpObject;
 begin
+  if gcGen < 0 then gcGen := 0;
   Result := TFuncObject.Create(n,p,r);
   Result.gc := Pointer(self);
-  Gen[0].Add(PtrUInt(Result), True);
-  Dec(CountDown[0]);
+  Gen[gcGen].Add(Result);
+  if gcGen = 0 then Dec(CountDown[0]);
 end;
 
 procedure TGarbageCollector.Release(var T:TEpObject);
+var H:UInt32;
 begin
-  if (T = nil) or (not T.Release) then Exit;
-  if Gen[0].Remove(PtrUInt(T)) or Gen[1].Remove(PtrUInt(T)) or Gen[2].Remove(PtrUInt(T)) then
-    Inc(CountDown[0]);
+  if (T = nil) then
+    Exit;
+
+  H := T.Handle;
+  if Gen[0].Contains(T) then
+  begin
+    if T.Release then
+    begin
+      Gen[0].Unset(H);
+      Inc(CountDown[0]);
+    end;
+  end
+
+  else if Gen[1].Contains(T) then
+  begin
+    if T.Release then Gen[1].Unset(H);
+  end
+
+  else if Gen[2].Contains(T) then
+  begin
+    if T.Release then Gen[2].Unset(H);
+  end;
 
   T := nil;
 end;

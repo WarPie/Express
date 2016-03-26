@@ -17,9 +17,9 @@ unit dictionary;
   ----------------------------------------------------------------------
   Rough example:
     type TStringToFloatMap = specialize TDictionary<string, Double>
-    var d:TStringToPointMap;
+    var d:TStringToFloatMap;
     begin
-      d := TStringToPointMap.Create(@HashStr);
+      d := TStringToFloatMap.Create(@HashStr);
 
       d['hello'] := 99.152;
       WriteLn( d['hello'] );
@@ -36,7 +36,7 @@ uses
 
 const
   // Minimum size of the dictionary - must be a power of 2
-  DICT_MIN_SIZE = 128;
+  DICT_MIN_SIZE = 512;
 
   // The basic growth strategy
   // EG: 2 means that it will double the size every time it resizes
@@ -55,6 +55,17 @@ type
     hash,idx:UInt32; 
   end;
 
+
+  {
+    TDictionary<K,V>
+
+    A simple datastructure that allows for efficient indexing using "keys".
+    The key can be just about any datatype, as long as it can be hashed in a
+    useful manner:
+    Hashing a key should always give the same result, and preferably be fast
+    as the hash-value will be computed every time you lookup, add or delete an
+    item, as well as whenever the map needs to grow.
+  }
   TDictionary<K,V> = class
   public type
     PtrV         = ^V;
@@ -85,7 +96,7 @@ type
     // Sets the base-size of the dictionary
     // Can be used to reduce the number of rebuilds.
     // Can't be used after items has been added to the dict.
-    procedure SetSize(k:SizeInt);
+    procedure SetSize(k:SizeInt); inline;
 
     // Clear the dictionary - removes all elements, and sizes it down to 0.
     procedure Clear; inline;
@@ -215,18 +226,6 @@ end;
 
 
 (******************************************************************************)
-{
-  TDictionary<K,V>
-
-  A simple datastructure that allows for efficient indexing using "keys".
-  The key can be just about any datatype, as long as it can be hashed in a
-  useful manner:
-  Hashing a key should always give the same result, and preferably be fast
-  as the hash-value will be computed every time you index, add or delete an
-  item, as well as whenever the map needs to grow.
-}
-
-
 constructor TDictionary<K,V>.Create(AHashFunc:THash);
 begin
   FHigh := 0;

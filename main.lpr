@@ -57,7 +57,7 @@ begin
     end;
   end;
 
-  if Length(code.Code) <= 60 then
+  if Length(code.Code) <= 160 then
   begin
     WriteLn();
     WriteFancy('[GRAY]======================================');
@@ -126,8 +126,8 @@ end;
 var
   Application: TMyApplication;
 begin
-  Application:=TMyApplication.Create(nil);
-  Application.Title:='My Application';
+  Application := TMyApplication.Create(nil);
+  Application.Title := 'Express Test';
   Application.Run;
   Application.Free;
 end.

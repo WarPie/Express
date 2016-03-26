@@ -13,13 +13,17 @@ uses
   SysUtils;
 
 type
-  // objects uses these
   PBoolean = Boolean;
+
+  // objects uses these
   PepInt = ^epInt;
   epInt  = Int64;
-  PepChar  = ^epChar;
-  epChar   = Char;
-  epString = String;
+
+  PepChar = ^epChar;
+  epChar  = Char;
+
+  PepString = ^epString;
+  epString  = String;
   //
   
   TPointerArray = array of Pointer;

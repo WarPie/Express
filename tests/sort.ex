@@ -2,7 +2,7 @@
 //Express   : used 1420ms
 //PYTHON    : used 980ms
 //LAPE      : used a whopping 550ms
-//PYPY      : used a whopping 350ms (jit might struggle with lists)
+//PYPY      : used a whopping 350ms (jit might struggle with all this branching + lists)
 
 func sort(arr,size)
   var gap := 0;
@@ -48,7 +48,9 @@ func is_sorted(a,n)
 end
 
 var arr := new_test(300000)
+
 var t := time;
 arr := sort(arr, 300000)
 print time - t;
+
 print is_sorted(arr, 300000)

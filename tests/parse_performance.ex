@@ -1,9 +1,9 @@
-n := 1;
-primes := 0;
-lim := 10000;
+var n := 1;
+var primes := 0;
+var lim := 10000;
 while(n < lim) do 
-  k := 3;
-  is_prime := True; 
+  var k := 3;
+  var is_prime := True; 
   n += 2;
   while (is_prime and k * k <= n) do 
     is_prime := n div k * k != n; 

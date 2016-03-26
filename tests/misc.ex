@@ -1,9 +1,6 @@
-var lst := []
-for var i:=1000; i >= 0; i-- do
-  lst += i;
-end;
+var lst := None;
+var x := None;
 
-//print lst
-var t := time
-print lst
-print time - t
+lst    := [1,2,3]
+x      := lst[0]
+lst[0] := 1

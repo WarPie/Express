@@ -349,6 +349,7 @@ begin
     Expr.Compile(ctx)
   else
     ctx.Emit(opcodes.LOAD_CONST, ctx.GetNone(), FDocPos);
+
   ctx.Emit(opcodes.RETURN, 0, FDocPos);
 end;
 
@@ -434,7 +435,7 @@ end;
 procedure TConstBool.Compile(ctx: TCompilerContext);
 var obj:TEpObject;
 begin
-  obj := ctx.GC.AllocBool(Value);
+  obj := ctx.GC.AllocBool(Value, 2);
   ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
@@ -453,7 +454,7 @@ end;
 procedure TConstChar.Compile(ctx: TCompilerContext);
 var obj:TEpObject;
 begin
-  obj := ctx.GC.AllocChar(Value);
+  obj := ctx.GC.AllocChar(Value, 2);
   ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
@@ -470,7 +471,7 @@ end;
 procedure TConstInt.Compile(ctx: TCompilerContext);
 var obj:TEpObject;
 begin
-  obj := ctx.GC.AllocInt(Value);
+  obj := ctx.GC.AllocInt(Value, 2);
   ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
@@ -487,7 +488,7 @@ end;
 procedure TConstFloat.Compile(ctx: TCompilerContext);
 var obj:TEpObject;
 begin
-  obj := ctx.GC.AllocFloat(Value);
+  obj := ctx.GC.AllocFloat(Value, 2);
   ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
@@ -503,7 +504,7 @@ end;
 procedure TConstString.Compile(ctx: TCompilerContext);
 var obj:TEpObject;
 begin
-  obj := ctx.GC.AllocString(StrVal);
+  obj := ctx.GC.AllocString(StrVal, 2);
   ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
@@ -611,8 +612,8 @@ begin
     for i:=0 to High(Params) do
     begin
       dest := ctx.RegisterVar(Params[High(Params)-i].Name);
-      ctx.Emit(opcodes.LOAD, dest, FDocPos);
-      ctx.Emit(opcodes.RASGN, dest, FDocPos);
+      ctx.Emit(opcodes.LOAD, dest, Params[High(Params)-i].FDocPos);
+      ctx.Emit(opcodes.RASGN, dest, Params[High(Params)-i].FDocPos);
     end;
 
     Prog.Compile(ctx);
@@ -620,7 +621,7 @@ begin
     ctx.Emit(opcodes.RETURN, 0, FDocPos);
 
     varRange.High := High(ctx.Vars.Names);
-    funcObj := ctx.GC.AllocFunc(Name, funcStart, varRange) as TFuncObject;
+    funcObj := ctx.GC.AllocFunc(Name, funcStart, varRange, 2) as TFuncObject;
 
     ctx.RunPatch(opcodes.__FUNC, opcodes.JMP_FORWARD, ctx.CodeSize());
     ctx.PopPatch(True, 'END_FUNCTION');
@@ -710,7 +711,7 @@ begin
   for i:=0 to l-1 do
     Expressions[i].Compile(ctx);
 
-  ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(ctx.GC.AllocInt(l)), FDocPos);
+  ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(ctx.GC.AllocInt(l, 2)), FDocPos);
   ctx.Emit(opcodes.BUILD_LIST, dest, FDocPos);
 end;
 
@@ -842,9 +843,9 @@ begin
   end
   else if (Left is TIndex) then
   begin
+    Right.Compile(ctx);
     TIndex(Left).Indexable.Compile(ctx);  //a tad hacky? ;P
     TIndex(Left).Args[0].Compile(ctx);
-    Right.Compile(ctx);
     if isAsgn then
       ctx.Emit(opcodes.SET_ITEM, 0, FDocPos)
     else

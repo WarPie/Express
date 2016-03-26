@@ -1,22 +1,22 @@
-var c:=0;
 
-func quicksort(a, ilo, ihi)
-  c += 1;
-  //if(c > 1000) return None;        
+func quicksort(a, ilo, ihi)  
   var lo := ilo
   var hi := ihi
   var pivot := a[(lo + hi) div 2]
-  repeat
+  var tmp := 0;
+  while True do
     while(a[lo] < pivot) lo += 1
     while(a[hi] > pivot) hi -= 1
     if lo <= hi then
-      var tmp := a[lo]
+      tmp := a[lo]
       a[lo] := a[hi]
       a[hi] := tmp
+      //a[lo],a[hi] := a[hi],a[lo] (* might be doable *)
       lo += 1
       hi -= 1
     end
-  until(lo > hi)
+    if (lo > hi) break;
+  end
   if(hi > ilo) quicksort(a, ilo, hi)
   if(lo < ihi) quicksort(a, lo, ihi)
 end
@@ -26,9 +26,6 @@ for var i:=100000; i >= 0; i-- do
   lst += i;
 end;
 
-//print lst
 var t := time
 quicksort(lst, 0,100000)
-print time - t, c
-
-//print lst
+print time - t

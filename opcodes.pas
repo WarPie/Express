@@ -18,6 +18,7 @@ type
     LOAD,
     STORE_FAST,
     DISCARD_TOP,
+    COPY_FAST,
 
     JMP_IF_FALSE, 
     JMP_IF_TRUE,

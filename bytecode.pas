@@ -156,7 +156,8 @@ begin
   Result := '[LGREEN]PROGRAM:'+#13#10;
   for i:=0 to High(self.code) do
   begin
-    WriteStr(t, Code[i].code);
+    WriteStr(t,Code[i].code);
+
     x := Length(t);
 
     if DebugHints.Contains(i) then
@@ -164,6 +165,7 @@ begin
 
     Result += Format('  #%-6d %s %'+IntToStr(20-x)+'d', [i, t, Code[i].arg]);
 
+    t := '';
     if (Code[i].code = LOAD_CONST) then
     begin
       tmpstr := Constants[Code[i].arg].AsString;
@@ -172,12 +174,14 @@ begin
         SetLength(tmpstr, 10);
         tmpstr += '..';
       end;
-      Result += ' ['+ tmpstr +']';
+      t := ' ['+ tmpstr +']';
     end
     else if (Code[i].code = LOAD) then
     begin
-      Result += ' ['+self.VarNames[Code[i].arg]+']';
+      t := ' ['+self.VarNames[Code[i].arg]+']';
     end;
+
+    Result += Format('  %-20s %s', [t, 'Pos:'+DocPos[i].ToString]);
 
     Result +=  #13#10;
   end;
@@ -193,7 +197,7 @@ begin
 
   Vars.NamesToNumbers := TStringToIntMap.Create(@HashStr);
   DebugHints := TIntToStringMap.Create(@HashInt32);
-  Self.RegisterConst(GC.AllocNone());
+  Self.RegisterConst(GC.AllocNone(2));
 end;
 
 destructor TCompilerContext.Destroy;

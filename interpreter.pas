@@ -73,7 +73,7 @@ procedure PrintFunc(exprs:TObjectArray);
 implementation
 
 uses
-  utils, errors, opcodes;
+  utils, errors, opcodes, mmgr;
 
 
 procedure PrintFunc(exprs:TObjectArray);
@@ -174,16 +174,18 @@ begin
   Stack[StackPos].varStart := varStart;
 end;
 
-procedure TCallStack.Reset(var pc: Int32; var bcVars:TObjectArray);
+procedure TCallStack.Reset(var PC: Int32; var bcVars:TObjectArray);
 var
+  GC:TGarbageCollector;
   top:TCallerData;
   i:Int32;
 begin
   top := Stack[StackPos];
-  pc  := top.pc;
+  PC  := top.pc;
+  GC  := TGarbageCollector(bcVars[0].GC);
   for i:=0 to High(top.vars) do
   begin
-    Assert(top.vars[i] <> nil);
+    GC.Release(bcVars[top.varStart+i]);
     bcVars[top.varStart+i] := top.vars[i];
   end;
   Dec(StackPos);
@@ -210,15 +212,18 @@ end;
 procedure TInterpreter.CollectGarbage();
 var g,i:Int32;
 begin
-  if Bytecode.GC.CountDown[0] > 0 then
+  if not Bytecode.GC.ShouldEnter then
     Exit;
-
+  //WriteLn('GC');
   for g:=0 to High(Bytecode.GC.CountDown) do
     if Bytecode.GC.CountDown[g] <= 0 then
     begin
+      Bytecode.GC.PrepareCollection(g);
+
       // mark the following variables so they don't go away
       for i:=0 to CallStack.StackPos do
         Bytecode.GC.Mark(g, CallStack.Stack[i].vars, High(CallStack.Stack[i].vars));
+
       Bytecode.GC.Mark(g, Frame.Stack, Frame.StackPos);
       Bytecode.GC.Mark(g, Bytecode.Variables, High(Bytecode.Variables));
       Bytecode.GC.Mark(g, Bytecode.Constants, High(Bytecode.Constants));
@@ -236,7 +241,7 @@ end;
 procedure TInterpreter.Execute;
 var
   op: TOperation;
-  tmp,left,right: TEpObject;
+  index,tmp,left,right: TEpObject;
 begin
   pc := 0;
   while True do
@@ -253,7 +258,9 @@ begin
         bytecode.Variables[op.arg] := frame.Pop;
       DISCARD_TOP:
         frame.Pop();
-      
+      COPY_FAST:
+        Frame.SetTop(frame.Top.Copy());
+
       (* jumps *)
       JMP_IF_FALSE:
         if (not frame.pop().AsBool) then pc := op.arg;
@@ -270,8 +277,7 @@ begin
         end;
       RASGN:
         begin
-          left := frame.Pop();
-          left.ASGN(frame.Pop(), bytecode.Variables[op.arg]);
+          frame.Pop().ASGN(frame.Pop(), bytecode.Variables[op.arg]);
         end;
 
       BUILD_LIST:
@@ -448,18 +454,16 @@ begin
           frame.SetTop(bytecode.Variables[op.arg]);
         end;
 
-      (* array like *)
+      (* indexable *)
       GET_ITEM:
         begin
-          left := frame.Pop(); //index
-          left.GET_ITEM(frame.Top, bytecode.Variables[op.arg]);
+          frame.Pop.GET_ITEM(frame.Top, bytecode.Variables[op.arg]);
           frame.SetTop(bytecode.Variables[op.arg]);
         end;
       SET_ITEM:
         begin
-          right := frame.Pop(); //value
-          tmp   := frame.Pop(); //index
-          frame.Pop.SET_ITEM(tmp, right);
+          index := frame.Pop();
+          frame.Pop.SET_ITEM(index, frame.Pop());
         end;
 
       (* other *)
@@ -494,7 +498,7 @@ begin
         begin
           if CallStack.StackPos >= 0 then
           begin
-            //Dec(Bytecode.GC.CountDown[0], Length(CallStack.Stack[CallStack.StackPos].vars));
+            Frame.SetTop(frame.Top.Copy());
             CallStack.Reset(pc, bytecode.Variables)
           end
           else
@@ -523,7 +527,6 @@ begin
     Bytecode.Variables[i]       := Bytecode.Constants[0];
   end;
 
-  //Inc(Bytecode.GC.CountDown[0], Length(locals));
   CallStack.Push(locals, counter, func.VarRange.Low);
 end;
 

@@ -14,8 +14,9 @@ for(i:=0; i < 3; i++) do
 end;
 *)
 
-// while loop
 var w := 0;
+
+// while loop
 while(w < 100) w += 1;
 print w = 100;
 

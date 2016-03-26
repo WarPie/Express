@@ -14,16 +14,15 @@ interface
 uses
   Classes, SysUtils, express;
 
-const
-  NO_REFERENCES = -1;
-  CONSTANT_REF  = -2;
 
 type
+  PEpObject = ^TEpObject;
   TEpObject = class
-    GC:Pointer;
+    Handle: UInt32;
+    GC: Pointer;
 
     function Release: Boolean; virtual;
-    function Copy: TEpObject; virtual; abstract;
+    function Copy(gcGen:Byte=0): TEpObject; virtual; abstract;
     function DeepCopy: TEpObject; virtual; abstract;
 
     function AsBool: Boolean; virtual;
@@ -69,18 +68,21 @@ type
     procedure BOR(other:TEpObject; var dest:TEpObject); virtual;
     procedure BXOR(other:TEpObject; var dest:TEpObject); virtual;
 
-    procedure GET_ITEM(index:TEpObject; var dest:TEpObject); virtual;
-    procedure SET_ITEM(index:TEpObject; other:TEpObject); virtual;
+    procedure GET_ITEM(constref index:TEpObject; var dest:TEpObject); virtual;
+    procedure SET_ITEM(constref index:TEpObject; constref other:TEpObject); virtual;
   end;
   TObjectArray = array of TEpObject;
 
   TNoneObject = class(TEpObject)
     function Release: Boolean; override;
-    function Copy: TEpObject; override;
+    function Copy(gcGen:Byte=0): TEpObject; override;
     function DeepCopy: TEpObject; override;
 
     function AsBool: Boolean; override;
+    function AsInt: epInt; override;
+    function AsFloat: Double; override;
     function AsString: epString; override;
+
     procedure ASGN(other:TEpObject; var dest:TEpObject); override;
 
     procedure EQ(other:TEpObject; var dest:TEpObject); override;
@@ -98,11 +100,12 @@ type
   TBoolObject = class(TEpObject)
     value: Boolean;
     constructor Create(AValue:Boolean);
-    function Copy: TEpObject; override;
+    function Copy(gcGen:Byte=0): TEpObject; override;
     function DeepCopy: TEpObject; override;
 
     function AsBool: Boolean; override;
     function AsInt: epInt; override;
+    function AsFloat: Double; override;
     function AsString: epString; override;
 
     procedure ASGN(other:TEpObject; var dest:TEpObject); override;
@@ -121,13 +124,14 @@ type
   TCharObject = class(TEpObject)
     value: epChar;
     constructor Create(AValue:epChar);
-    function Copy: TEpObject; override;
+    function Copy(gcGen:Byte=0): TEpObject; override;
     function DeepCopy: TEpObject; override;
 
     function AsString: epString; override;
     function AsBool: Boolean; override;
     function AsChar: epChar; override;
     function AsInt: epInt; override;
+    function AsFloat: Double; override;
 
     procedure ASGN(other:TEpObject; var dest:TEpObject); override;
 
@@ -147,12 +151,13 @@ type
   TIntObject = class(TEpObject)
     value: epInt;
     constructor Create(AValue:epInt);
-    function Copy: TEpObject; override;
+    function Copy(gcGen:Byte=0): TEpObject; override;
     function DeepCopy: TEpObject; override;
 
     function AsString: epString; override;
     function AsBool: Boolean; override;
     function AsInt: epInt; override;
+    function AsFloat: Double; override;
 
     procedure ASGN(other:TEpObject; var dest:TEpObject); override;
     procedure INPLACE_ADD(other:TEpObject); override;
@@ -195,12 +200,13 @@ type
   TFloatObject = class(TEpObject)
     value: Double;
     constructor Create(AValue:Double);
-    function Copy: TEpObject; override;
+    function Copy(gcGen:Byte=0): TEpObject; override;
     function DeepCopy: TEpObject; override;
 
     function AsString: epString; override;
     function AsBool: Boolean; override;
     function AsInt: epInt; override;
+    function AsFloat: Double; override;
 
     procedure ASGN(other:TEpObject; var dest:TEpObject); override;
     procedure INPLACE_ADD(other:TEpObject); override;
@@ -238,7 +244,7 @@ type
     value: epString;
     constructor Create(AValue:epString);
 
-    function Copy: TEpObject; override;
+    function Copy(gcGen:Byte=0): TEpObject; override;
     function DeepCopy: TEpObject; override;
 
     function AsChar: epChar; override;
@@ -249,8 +255,8 @@ type
     procedure ASGN(other:TEpObject; var dest:TEpObject); override;
     procedure INPLACE_ADD(other:TEpObject); override;
     procedure ADD(other:TEpObject; var dest:TEpObject); override;
-    procedure GET_ITEM(index:TEpObject; var dest:TEpObject); override;
-    procedure SET_ITEM(index:TEpObject; other:TEpObject); override;
+    procedure GET_ITEM(constref index:TEpObject; var dest:TEpObject); override;
+    procedure SET_ITEM(constref index:TEpObject; constref other:TEpObject); override;
   end;
 
   TListObject = class(TEpObject)
@@ -258,7 +264,7 @@ type
 
     constructor Create(AValue:TObjectArray);
     function Release: Boolean; override;
-    function Copy: TEpObject; override;
+    function Copy(gcGen:Byte=0): TEpObject; override;
     function DeepCopy: TEpObject; override;
 
     function AsString: epString; override;
@@ -269,8 +275,8 @@ type
 
     //
     procedure ASGN(other:TEpObject; var dest:TEpObject); override;
-    procedure GET_ITEM(index:TEpObject; var dest:TEpObject); override;
-    procedure SET_ITEM(index:TEpObject; other:TEpObject); override;
+    procedure GET_ITEM(constref index:TEpObject; var dest:TEpObject); override;
+    procedure SET_ITEM(constref index:TEpObject; constref other:TEpObject); override;
   end;
 
 
@@ -280,7 +286,7 @@ type
     VarRange: TIntRange;
 
     constructor Create(AName:epString; ACodePos:Int32; AVarRange:TIntRange);
-    function Copy: TEpObject; override;
+    function Copy(gcGen:Byte=0): TEpObject; override;
     function DeepCopy: TEpObject; override;
 
     function AsString: epString; override;
@@ -303,15 +309,15 @@ uses
 
 {=============================================================================}
 // Helper functions
-// Releasing is technically not needed, but in certian cases we avoid
-// executing garbage collection, "release" is only a hint tho, special
-// objects wont get freed (only for simple data types)
+//   Releasing is technically not needed, but in certian cases we avoid
+//   executing garbage collection.
 {=============================================================================}
 procedure SetBoolDest(var dest:TEpObject; constref value:Boolean);
-var GC:TGarbageCollector;
+var
+  GC:TGarbageCollector;
 begin
   assert(dest <> nil, 'dest is nil');
-  if dest is TBoolObject then
+  if dest.ClassType = TBoolObject then
     TBoolObject(dest).value := value
   else
   begin
@@ -325,7 +331,7 @@ procedure SetCharDest(var dest:TEpObject; constref value:epChar);
 var GC:TGarbageCollector;
 begin
   assert(dest <> nil, 'dest is nil');
-  if dest is TCharObject then
+  if dest.ClassType = TCharObject then
     TCharObject(dest).value := value
   else
   begin
@@ -339,7 +345,7 @@ procedure SetIntDest(var dest:TEpObject; constref value:epInt);
 var GC:TGarbageCollector;
 begin
   assert(dest <> nil, 'dest is nil');
-  if dest is TIntObject then
+  if dest.ClassType = TIntObject then
     TIntObject(dest).value := value
   else
   begin
@@ -353,7 +359,7 @@ procedure SetFloatDest(var dest:TEpObject; constref value:Double);
 var GC:TGarbageCollector;
 begin
   assert(dest <> nil, 'dest is nil');
-  if dest is TFloatObject then
+  if dest.ClassType = TFloatObject then
     TFloatObject(dest).value := value
   else
   begin
@@ -367,7 +373,7 @@ procedure SetStringDest(var dest:TEpObject; constref value:epString);
 var GC:TGarbageCollector;
 begin
   assert(dest <> nil, 'dest is nil');
-  if dest is TStringObject then
+  if dest.ClassType = TStringObject then
     TStringObject(dest).value := value
   else
   begin
@@ -468,18 +474,20 @@ procedure TEpObject.LOGIC_NOT(var dest:TEpObject);                  begin raise 
 procedure TEpObject.BAND(other:TEpObject; var dest:TEpObject);      begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.BOR(other:TEpObject; var dest:TEpObject);       begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.BXOR(other:TEpObject; var dest:TEpObject);      begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.GET_ITEM(index:TEpObject; var dest:TEpObject);  begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.SET_ITEM(index:TEpObject; other:TEpObject);     begin raise E_NOT_IMPLEMENTED; end;
+procedure TEpObject.GET_ITEM(constref index:TEpObject; var dest:TEpObject);  begin raise E_NOT_IMPLEMENTED; end;
+procedure TEpObject.SET_ITEM(constref index:TEpObject; constref other:TEpObject); begin raise E_NOT_IMPLEMENTED; end;
 
 
 {=============================================================================}
 // None
 {=============================================================================}
 function TNoneObject.Release: Boolean;    begin Result := False; end;
-function TNoneObject.Copy: TEpObject;     begin Result := self; end;
+function TNoneObject.Copy(gcGen:Byte=0): TEpObject; begin Result := self; end;
 function TNoneObject.DeepCopy: TEpObject; begin Result := self; end;
 
 function TNoneObject.AsBool: Boolean;    begin Result := False end;
+function TNoneObject.AsInt: epInt;       begin Result := 0; end;
+function TNoneObject.AsFloat: Double;    begin Result := 0; end;
 function TNoneObject.AsString: epString; begin Result := 'None'; end;
 
 procedure TNoneObject.ASGN(other:TEpObject; var dest:TEpObject);
@@ -537,9 +545,9 @@ begin
   self.Value := AValue;
 end;
 
-function TBoolObject.Copy: TEpObject;
+function TBoolObject.Copy(gcGen:Byte=0): TEpObject;
 begin
-  Result := TGarbageCollector(GC).AllocBool(self.value);
+  Result := TGarbageCollector(GC).AllocBool(self.value, gcGen);
 end;
 
 function TBoolObject.DeepCopy: TEpObject;
@@ -553,6 +561,11 @@ begin
 end;
 
 function TBoolObject.AsInt: epInt;
+begin
+  Result := ord(self.Value);
+end;
+
+function TBoolObject.AsFloat: Double;
 begin
   Result := ord(self.Value);
 end;
@@ -664,9 +677,9 @@ begin
   self.Value := AValue;
 end;
 
-function TCharObject.Copy: TEpObject;
+function TCharObject.Copy(gcGen:Byte=0): TEpObject;
 begin
-  Result := TGarbageCollector(GC).AllocChar(self.value);
+  Result := TGarbageCollector(GC).AllocChar(self.value, gcGen);
 end;
 
 function TCharObject.DeepCopy: TEpObject;
@@ -685,6 +698,11 @@ begin
 end;
 
 function TCharObject.AsInt: epInt;
+begin
+  Result := ord(self.Value);
+end;
+
+function TCharObject.AsFloat: Double;
 begin
   Result := ord(self.Value);
 end;
@@ -795,9 +813,9 @@ begin
   self.Value := AValue;
 end;
 
-function TIntObject.Copy: TEpObject;
+function TIntObject.Copy(gcGen:Byte=0): TEpObject;
 begin
-  Result := TGarbageCollector(GC).AllocInt(self.value);
+  Result := TGarbageCollector(GC).AllocInt(self.value, gcGen);
 end;
 
 function TIntObject.DeepCopy: TEpObject;
@@ -815,6 +833,11 @@ begin
   Result := self.Value;
 end;
 
+function TIntObject.AsFloat: Double;
+begin
+  Result := self.Value;
+end;
+
 function TIntObject.AsString: epString;
 begin
   Result := IntToStr(self.Value);
@@ -822,7 +845,7 @@ end;
 
 procedure TIntObject.ASGN(other:TEpObject; var dest:TEpObject);
 begin
-  if other is TIntObject then
+  if other.ClassType = TIntObject then
     self.value := TIntObject(other).value
   else
     inherited;
@@ -830,7 +853,7 @@ end;
 
 procedure TIntObject.INPLACE_ADD(other:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     self.value += TIntObject(other).value
   else
     raise E_NOT_IMPLEMENTED;
@@ -838,7 +861,7 @@ end;
 
 procedure TIntObject.INPLACE_SUB(other:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     self.value -= TIntObject(other).value
   else
     raise E_NOT_IMPLEMENTED;
@@ -846,7 +869,7 @@ end;
 
 procedure TIntObject.INPLACE_MUL(other:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     self.value := self.value * TIntObject(other).value
   else
     raise E_NOT_IMPLEMENTED;
@@ -854,7 +877,7 @@ end;
 
 procedure TIntObject.INPLACE_DIV(other:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     self.value := self.value div TIntObject(other).value
   else
     raise E_NOT_IMPLEMENTED;
@@ -896,9 +919,9 @@ end;
 
 procedure TIntObject.ADD(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetIntDest(dest, self.value + TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetFloatDest(dest, self.value + TFloatObject(other).value)
   else
     inherited;
@@ -906,9 +929,9 @@ end;
 
 procedure TIntObject.SUB(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetIntDest(dest, self.value - TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetFloatDest(dest, self.value - TFloatObject(other).value)
   else
     inherited;
@@ -916,9 +939,9 @@ end;
 
 procedure TIntObject.MUL(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetIntDest(dest, self.value * TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetFloatDest(dest, self.value * TFloatObject(other).value)
   else
     inherited;
@@ -926,7 +949,7 @@ end;
 
 procedure TIntObject.IDIV(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetIntDest(dest, self.value div TIntObject(other).value)
   else
     inherited;
@@ -934,9 +957,9 @@ end;
 
 procedure TIntObject.FDIV(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetFloatDest(dest, self.value / TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetFloatDest(dest, self.value / TFloatObject(other).value)
   else
     inherited;
@@ -944,9 +967,9 @@ end;
 
 procedure TIntObject.MODULO(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetIntDest(dest, utils.modulo(self.value, TIntObject(other).value))
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetFloatDest(dest, utils.modulo(self.value, TFloatObject(other).value))
   else
     inherited;
@@ -954,9 +977,9 @@ end;
 
 procedure TIntObject.POW(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetIntDest(dest, self.value * TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetFloatDest(dest, self.value * TFloatObject(other).value)
   else
     inherited;
@@ -964,9 +987,9 @@ end;
 
 procedure TIntObject.EQ(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetBoolDest(dest, self.value = TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value = TFloatObject(other).value)
   else
     inherited;
@@ -974,9 +997,9 @@ end;
 
 procedure TIntObject.NE(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetBoolDest(dest, self.value <> TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value <> TFloatObject(other).value)
   else
     inherited;
@@ -984,9 +1007,9 @@ end;
 
 procedure TIntObject.LT(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetBoolDest(dest, self.value < TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value < TFloatObject(other).value)
   else
     inherited;
@@ -994,9 +1017,9 @@ end;
 
 procedure TIntObject.GT(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetBoolDest(dest, self.value > TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value > TFloatObject(other).value)
   else
     inherited;
@@ -1004,9 +1027,9 @@ end;
 
 procedure TIntObject.LE(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetBoolDest(dest, self.value <= TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value <= TFloatObject(other).value)
   else
     inherited;
@@ -1014,9 +1037,9 @@ end;
 
 procedure TIntObject.GE(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetBoolDest(dest, self.value >= TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value >= TFloatObject(other).value)
   else
     inherited;
@@ -1040,7 +1063,7 @@ end;
 
 procedure TIntObject.BAND(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetIntDest(dest, self.value and TIntObject(other).value)
   else
     inherited;
@@ -1048,7 +1071,7 @@ end;
 
 procedure TIntObject.BOR(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetIntDest(dest, self.value or TIntObject(other).value)
   else
     inherited;
@@ -1056,7 +1079,7 @@ end;
 
 procedure TIntObject.BXOR(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetIntDest(dest, self.value xor TIntObject(other).value)
   else
     inherited;
@@ -1071,9 +1094,9 @@ begin
   self.Value := AValue;
 end;
 
-function TFloatObject.Copy: TEpObject;
+function TFloatObject.Copy(gcGen:Byte=0): TEpObject;
 begin
-  Result := TGarbageCollector(GC).AllocFloat(self.value);
+  Result := TGarbageCollector(GC).AllocFloat(self.value, gcGen);
 end;
 
 function TFloatObject.DeepCopy: TEpObject;
@@ -1089,6 +1112,11 @@ end;
 function TFloatObject.AsInt: epInt;
 begin
   Result := Trunc(self.Value);
+end;
+
+function TFloatObject.AsFloat: Double;
+begin
+  Result := self.Value;
 end;
 
 function TFloatObject.AsString: epString;
@@ -1318,9 +1346,9 @@ begin
   self.Value := AValue;
 end;
 
-function TStringObject.Copy: TEpObject;
+function TStringObject.Copy(gcGen:Byte=0): TEpObject;
 begin
-  Result := TGarbageCollector(GC).AllocString(self.value);
+  Result := TGarbageCollector(GC).AllocString(self.value, gcGen);
 end;
 
 function TStringObject.DeepCopy: TEpObject;
@@ -1394,7 +1422,7 @@ begin
     inherited;
 end;
 
-procedure TStringObject.GET_ITEM(index:TEpObject; var dest:TEpObject);
+procedure TStringObject.GET_ITEM(constref index:TEpObject; var dest:TEpObject);
 begin
   if index is TIntObject then
     SetCharDest(dest, self.value[1+TIntObject(index).value])
@@ -1402,7 +1430,7 @@ begin
     SetCharDest(dest, self.value[1+index.AsInt]);
 end;
 
-procedure TStringObject.SET_ITEM(index:TEpObject; other:TEpObject);
+procedure TStringObject.SET_ITEM(constref index:TEpObject; constref other:TEpObject);
 begin
   self.value[1+index.AsInt] := TCharObject(other).AsChar;
 end;
@@ -1421,9 +1449,9 @@ begin
   Result := False;
 end;
 
-function TListObject.Copy: TEpObject;
+function TListObject.Copy(gcGen:Byte=0): TEpObject;
 begin
-  Result := self; //refobject, ya know
+  Result := self; //meh
 end;
 
 function TListObject.DeepCopy: TEpObject;
@@ -1476,7 +1504,7 @@ begin
 end;
 
 
-procedure TListObject.GET_ITEM(index:TEpObject; var dest:TEpObject);
+procedure TListObject.GET_ITEM(constref index:TEpObject; var dest:TEpObject);
 var
   idx,real_idx,len:SizeInt;
 begin
@@ -1493,7 +1521,7 @@ begin
   dest.ASGN(self.value[idx], dest);
 end;
 
-procedure TListObject.SET_ITEM(index:TEpObject; other:TEpObject);
+procedure TListObject.SET_ITEM(constref index:TEpObject; constref other:TEpObject);
 var
   idx,real_idx,len:SizeInt;
 begin
@@ -1521,9 +1549,9 @@ begin
   self.VarRange := AVarRange;
 end;
 
-function TFuncObject.Copy: TEpObject;
+function TFuncObject.Copy(gcGen:Byte=0): TEpObject;
 begin
-  Result := TGarbageCollector(GC).AllocFunc(self.Name, self.CodePos, self.VarRange);
+  Result := TGarbageCollector(GC).AllocFunc(self.Name, self.CodePos, self.VarRange, gcGen);
 end;
 
 function TFuncObject.DeepCopy: TEpObject;
