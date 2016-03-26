@@ -16,7 +16,7 @@ unit dictionary;
   identical number of a new additions. And so we avoid expensive resizing.
   ----------------------------------------------------------------------
   Rough example:
-    type TStringToFloatMap := TDictionary<string, Double>
+    type TStringToFloatMap = specialize TDictionary<string, Double>
     var d:TStringToPointMap;
     begin
       d := TStringToPointMap.Create(@HashStr);
