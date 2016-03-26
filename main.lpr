@@ -106,7 +106,7 @@ end;
 
 procedure TMyApplication.DoRun;
 begin
-  TestExecute2('tests/quicksort.ex');
+  TestExecute2('tests/quicksort.xpr');
 
   while True do Sleep(500);
   Terminate;
