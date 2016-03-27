@@ -77,7 +77,7 @@ begin
   CodeRunner := TInterpreter.Create(code);
   try
     t := marktime();
-    CodeRunner.Execute;
+    CodeRunner.ExecuteSafe;
     t := marktime() - t;
   except
     on E:RuntimeError do

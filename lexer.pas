@@ -128,7 +128,10 @@ const
   );
 
 
-  BinPrecedence: array [0..28] of TOperatorValue = (
+  BinPrecedence: array [0..30] of TOperatorValue = (
+    (op:'if';    prec:1;   assoc:-1),
+
+    (op:'=>';    prec:1;   assoc:-1),
     (op:':=';    prec:1;   assoc:-1),
     (op:'+=';    prec:1;   assoc:-1),
     (op:'-=';    prec:1;   assoc:-1),
@@ -388,7 +391,10 @@ begin
         else
           self.AppendInc(tk_colon, data[pos], 1);
       '<','>','=','!':
-        self.AddToken(['<=','>=','!=','>','<','='], tk_cmp);
+        if Peek() = '>' then
+          self.AppendInc(tk_assign, data[pos]+data[pos+1], 2)
+        else
+          self.AddToken(['<=','>=','!=','>','<','='], tk_cmp);
       '&','|','^','~': 
         if Peek() = '=' then
           self.AppendInc(tk_assign, data[pos]+data[pos+1], 2)

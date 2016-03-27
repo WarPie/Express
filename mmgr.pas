@@ -41,7 +41,7 @@ type
     Threshold: Array [0..2] of Int32;
     CountDown: Array [0..2] of Int32;
     Gen:       Array [0..2] of TMemoryPool;
-    Lookup: TGCLookup;
+    Lookup, Marked: TGCLookup;
 
     Temp:TObjectArray;
     TempPos: Int32;
@@ -51,7 +51,7 @@ type
     function ShouldEnter: Boolean; inline;
 
     procedure PrepareCollection(genId:Int8); inline;
-    procedure Mark(genId:Int8; root:TObjectArray; top:Int32; marked:PtrUInt=0);
+    procedure Mark(genId:Int8; root:TObjectArray; top:Int32);
     procedure Sweep(genId:Int8);
     
     (* alloc and free *)
@@ -123,8 +123,8 @@ begin
   CountDown[1] := THRESHOLD[1];
   CountDown[2] := THRESHOLD[2];
 
-  Lookup := TGCLookup.Create(@HashPointer);
-  Lookup.SetSize(POOL_MIN_SIZE-1);
+  Lookup := TGCLookup.Create(@HashPointer, POOL_MIN_SIZE-1);
+  Marked := TGCLookup.Create(@HashPointer);
 
   tempPos := -1;
   SetLength(temp, DEFAULT_TEMP_SIZE);
@@ -162,7 +162,12 @@ begin
       Lookup[PtrUInt(gen[genId].Pool[i])] := True;
 end;
 
-procedure TGarbageCollector.Mark(genId:Int8; root:TObjectArray; top:Int32; marked:PtrUInt=0);
+(*
+  Fix me: Infinite recursion.
+   Properly mark objects that has been seen once already.
+   Could use a dictionary for that as well.
+*)
+procedure TGarbageCollector.Mark(genId:Int8; root:TObjectArray; top:Int32);
 var
   i: Int32;
 begin
@@ -179,8 +184,8 @@ begin
     // if current is a container object (object with children), it may contain
     // items in any other generation, so it should be checked even tho the list
     // itself is not in our current generation.
-    if (root[i] is TListObject) and (PtrUInt(root[i]) <> marked) then
-      Mark(genId, TListObject(root[i]).value, High(TListObject(root[i]).value), PtrUInt(root[i]));
+    if (root[i] is TListObject) and (not marked.Add(PtrUInt(root[i]), True)) then
+      Mark(genId, TListObject(root[i]).value, High(TListObject(root[i]).value));
   end;
 end;
 
@@ -206,6 +211,8 @@ begin
   CountDown[genId] := THRESHOLD[genId];
   tempPos := -1;
   SetLength(temp, DEFAULT_TEMP_SIZE);
+
+  marked.Clear;
 end;
 
 

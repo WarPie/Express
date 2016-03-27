@@ -1,7 +1,7 @@
 (* basedefines *)
 {$mode objfpc}{$H+}
 {$modeswitch advancedrecords}
-{$inline on}
+{.$inline on}
 {$macro on}
 
 {$define loose_semicolon}

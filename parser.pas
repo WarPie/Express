@@ -336,8 +336,11 @@ begin
   Params := ParseVarList(True);
   ExpectAndInc(rparen);
 
-  if Current = keyword('return') then
-    Prog := TBlock.Create(self.ParseStatement(), DocPos)
+  if Current = Token(tk_assign, '=>')  then
+  begin
+    Next;
+    Prog := TBlock.Create(TReturn.Create(ParseExpression(True), DocPos), DocPos);
+  end
   else
   begin
     SkipTokens(SEPARATORS);
@@ -501,13 +504,17 @@ end;
 //meh
 function TParser.ParseVardecl: TVarDecl;
 var
-  right:TBaseNode;
-  left:TVarArray;
+  Right:TBaseNode;
+  Left:TVarArray;
 begin
   ExpectAndInc('var');
-  left := ParseVarList(False);
-  ExpectAndInc(Token(tk_assign, ':='));
-  right := ParseExpression(False);
+  Left := ParseVarList(False);
+  Right := nil;
+  if Current = Token(tk_assign, ':=') then
+  begin
+    Next;
+    Right := ParseExpression(False);
+  end;
   Result := TVarDecl.Create(left, right, DocPos)
 end;
 
@@ -604,10 +611,21 @@ var
   Right: TBaseNode;
   op:TToken;
 
-  function Operation(op:TToken; left,right:TBaseNode): TBaseNode; inline;
+  function IfExpr(Left,Right:TBaseNode): TIfExpression; inline;
+  var Condition:TBaseNode;
+  begin
+    Condition := Right;
+    ExpectAndInc(Keyword('else'));
+    Right := ParseExpression(False);
+    Result := TIfExpression.Create(Condition,Left,Right, DocPos);
+  end;
+
+  function Operation(op:TToken; Left,Right:TBaseNode): TBaseNode; inline;
   begin
     if op.token = tk_assign then
-      Result := TAssignment.Create(op, left, right, DocPos)
+      Result := TAssignment.Create(op, Left, Right, DocPos)
+    else if op = Keyword('if') then
+      Result := IfExpr(Left, Right)
     else
       Result := TBinOp.Create(op, left, right, DocPos);
   end;

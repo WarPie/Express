@@ -204,6 +204,15 @@ type
     procedure Compile(ctx: TCompilerContext); override;
   end;
 
+  (* If-Expression *)
+  TIfExpression = class(TBaseNode)
+    Condition: TBaseNode;
+    Left, Right: TBaseNode;
+    constructor Create(ACond:TBaseNode; ALeft, ARight:TBaseNode; DocPos: TDocPos); virtual; reintroduce;
+    function ToString: string; override;
+    procedure Compile(ctx: TCompilerContext); override;
+  end;
+
   (* if statement *)
   TIf = class(TBaseNode)
     Condition: TBaseNode;
@@ -553,10 +562,13 @@ var
 begin
   for i:=0 to High(Variables) do
   begin
-    Expr.Compile(ctx);
     dest := ctx.RegisterVar(TVariable(Variables[i]).Name, True);
-    Variables[i].Compile(ctx);
-    ctx.Emit(opcodes.RASGN, dest, FDocPos);
+    if Expr <> nil then
+    begin
+      Expr.Compile(ctx);
+      Variables[i].Compile(ctx);
+      ctx.Emit(opcodes.RASGN, dest, FDocPos);
+    end;
   end;
 end;
 
@@ -852,6 +864,36 @@ begin
       ctx.Emit(bytecode.OperatorToOpcode[op.value], 0, FDocPos);
   end else
     RaiseException(eSyntaxError, eUnexpected, Left.FDocPos);
+end;
+
+
+(*
+  <stmt> if (condition) else <stmt>
+*)
+constructor TIfExpression.Create(ACond:TBaseNode; ALeft, ARight:TBaseNode; DocPos: TDocPos);
+begin
+  Condition := ACond;
+  Left  := ALeft;
+  Right := ARight;
+  FDocPos := DocPos;
+end;
+
+function TIfExpression.ToString: string;
+begin
+  Result := 'IfExpr('+Condition.ToString+', '+ Left.ToString +':'+ Right.ToString +')';
+end;
+
+procedure TIfExpression.Compile(ctx: TCompilerContext);
+var
+  after,afterElse:Int32;
+begin
+  Condition.Compile(ctx);
+  after := ctx.Emit(opcodes.JMP_IF_FALSE, 0, Condition.FDocPos);
+  Left.Compile(ctx);
+  afterElse := ctx.Emit(opcodes.JMP_FORWARD, 0, Condition.FDocPos);
+  ctx.PatchArg(after, ctx.CodeSize());     //jump here if false
+  Right.Compile(ctx);
+  ctx.PatchArg(afterElse, ctx.CodeSize()); //jump here to skip else
 end;
 
 

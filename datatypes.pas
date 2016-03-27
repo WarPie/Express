@@ -10,6 +10,7 @@ unit datatypes;
 interface
 
 {$DEFINE E_NOT_IMPLEMENTED := RuntimeError.Create(eNotImplemented)}
+{$DEFINE E_NOT_COMPATIBLE1 := RuntimeError.CreateFmt(eNotCompatible1, [self.ToString, other.ToString])}
 
 uses
   Classes, SysUtils, express;
@@ -309,8 +310,8 @@ uses
 
 {=============================================================================}
 // Helper functions
-//   Releasing is technically not needed, but in certian cases we avoid
-//   executing garbage collection.
+//  Releasing is technically not needed, but reduces the number of times
+//  the garbage collectior is executed. Faster execution! :)
 {=============================================================================}
 procedure SetBoolDest(var dest:TEpObject; constref value:Boolean);
 var
@@ -414,66 +415,66 @@ begin
   dest := other.Copy();
 end;
 
-procedure TEpObject.INPLACE_ADD(other:TEpObject);  begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.INPLACE_SUB(other:TEpObject);  begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.INPLACE_MUL(other:TEpObject);  begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.INPLACE_DIV(other:TEpObject);  begin raise E_NOT_IMPLEMENTED; end;
+procedure TEpObject.INPLACE_ADD(other:TEpObject);  begin raise E_NOT_COMPATIBLE1; end;
+procedure TEpObject.INPLACE_SUB(other:TEpObject);  begin raise E_NOT_COMPATIBLE1; end;
+procedure TEpObject.INPLACE_MUL(other:TEpObject);  begin raise E_NOT_COMPATIBLE1; end;
+procedure TEpObject.INPLACE_DIV(other:TEpObject);  begin raise E_NOT_COMPATIBLE1; end;
 procedure TEpObject.PREINC(var dest:TEpObject);    begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.PREDEC(var dest:TEpObject);    begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.POSTINC(var dest:TEpObject);   begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.POSTDEC(var dest:TEpObject);   begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.UNARY_SUB(var dest:TEpObject);               begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.UNARY_INV(var dest:TEpObject);               begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.ADD(other:TEpObject; var dest:TEpObject);    begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.SUB(other:TEpObject; var dest:TEpObject);    begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.MUL(other:TEpObject; var dest:TEpObject);    begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.IDIV(other:TEpObject; var dest:TEpObject);   begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.FDIV(other:TEpObject; var dest:TEpObject);   begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.MODULO(other:TEpObject; var dest:TEpObject); begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.POW(other:TEpObject; var dest:TEpObject);    begin raise E_NOT_IMPLEMENTED; end;
+procedure TEpObject.ADD(other:TEpObject; var dest:TEpObject);    begin raise E_NOT_COMPATIBLE1; end;
+procedure TEpObject.SUB(other:TEpObject; var dest:TEpObject);    begin raise E_NOT_COMPATIBLE1; end;
+procedure TEpObject.MUL(other:TEpObject; var dest:TEpObject);    begin raise E_NOT_COMPATIBLE1; end;
+procedure TEpObject.IDIV(other:TEpObject; var dest:TEpObject);   begin raise E_NOT_COMPATIBLE1; end;
+procedure TEpObject.FDIV(other:TEpObject; var dest:TEpObject);   begin raise E_NOT_COMPATIBLE1; end;
+procedure TEpObject.MODULO(other:TEpObject; var dest:TEpObject); begin raise E_NOT_COMPATIBLE1; end;
+procedure TEpObject.POW(other:TEpObject; var dest:TEpObject);    begin raise E_NOT_COMPATIBLE1; end;
 
 procedure TEpObject.EQ(other:TEpObject; var dest:TEpObject);
 begin
   if (other is TNoneObject) then SetBoolDest(dest, False)
-  else raise E_NOT_IMPLEMENTED;
+  else raise E_NOT_COMPATIBLE1;
 end;
 
 procedure TEpObject.NE(other:TEpObject; var dest:TEpObject);
 begin
   if (other is TNoneObject) then SetBoolDest(dest, True)
-  else raise E_NOT_IMPLEMENTED;
+  else raise E_NOT_COMPATIBLE1;
 end;
 
 procedure TEpObject.LT(other:TEpObject; var dest:TEpObject);
 begin
   if (other is TNoneObject) then SetBoolDest(dest, False)
-  else raise E_NOT_IMPLEMENTED;
+  else raise E_NOT_COMPATIBLE1;
 end;
 
 procedure TEpObject.GT(other:TEpObject; var dest:TEpObject);
 begin
   if (other is TNoneObject) then SetBoolDest(dest, True)
-  else raise E_NOT_IMPLEMENTED;
+  else raise E_NOT_COMPATIBLE1;
 end;
 
 procedure TEpObject.GE(other:TEpObject; var dest:TEpObject);
 begin
   if (other is TNoneObject) then SetBoolDest(dest, True)
-  else raise E_NOT_IMPLEMENTED;
+  else raise E_NOT_COMPATIBLE1;
 end;
 
 procedure TEpObject.LE(other:TEpObject; var dest:TEpObject);
 begin
   if (other is TNoneObject) then SetBoolDest(dest, False)
-  else raise E_NOT_IMPLEMENTED;
+  else raise E_NOT_COMPATIBLE1;
 end;
 
-procedure TEpObject.LOGIC_AND(other:TEpObject; var dest:TEpObject); begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.LOGIC_OR(other:TEpObject; var dest:TEpObject);  begin raise E_NOT_IMPLEMENTED; end;
+procedure TEpObject.LOGIC_AND(other:TEpObject; var dest:TEpObject); begin raise E_NOT_COMPATIBLE1; end;
+procedure TEpObject.LOGIC_OR(other:TEpObject; var dest:TEpObject);  begin raise E_NOT_COMPATIBLE1; end;
 procedure TEpObject.LOGIC_NOT(var dest:TEpObject);                  begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.BAND(other:TEpObject; var dest:TEpObject);      begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.BOR(other:TEpObject; var dest:TEpObject);       begin raise E_NOT_IMPLEMENTED; end;
-procedure TEpObject.BXOR(other:TEpObject; var dest:TEpObject);      begin raise E_NOT_IMPLEMENTED; end;
+procedure TEpObject.BAND(other:TEpObject; var dest:TEpObject);      begin raise E_NOT_COMPATIBLE1; end;
+procedure TEpObject.BOR(other:TEpObject; var dest:TEpObject);       begin raise E_NOT_COMPATIBLE1; end;
+procedure TEpObject.BXOR(other:TEpObject; var dest:TEpObject);      begin raise E_NOT_COMPATIBLE1; end;
 procedure TEpObject.GET_ITEM(constref index:TEpObject; var dest:TEpObject);  begin raise E_NOT_IMPLEMENTED; end;
 procedure TEpObject.SET_ITEM(constref index:TEpObject; constref other:TEpObject); begin raise E_NOT_IMPLEMENTED; end;
 
@@ -500,19 +501,19 @@ end;
 
 procedure TNoneObject.EQ(other:TEpObject; var dest:TEpObject);
 begin
-  if other is TNoneObject then SetBoolDest(dest, True)
+  if other.ClassType = TNoneObject then SetBoolDest(dest, True)
   else SetBoolDest(dest, False);
 end;
 
 procedure TNoneObject.NE(other:TEpObject; var dest:TEpObject);
 begin
-  if other is TNoneObject then SetBoolDest(dest, False)
+  if other.ClassType = TNoneObject then SetBoolDest(dest, False)
   else SetBoolDest(dest, True);
 end;
 
 procedure TNoneObject.LT(other:TEpObject; var dest:TEpObject);
 begin
-  if other is TNoneObject then SetBoolDest(dest, False)
+  if other.ClassType = TNoneObject then SetBoolDest(dest, False)
   else SetBoolDest(dest, True);
 end;
 
@@ -523,13 +524,13 @@ end;
 
 procedure TNoneObject.LE(other:TEpObject; var dest:TEpObject);
 begin
-  if other is TNoneObject then SetBoolDest(dest, True)
+  if other.ClassType = TNoneObject then SetBoolDest(dest, True)
   else SetBoolDest(dest, False);
 end;
 
 procedure TNoneObject.GE(other:TEpObject; var dest:TEpObject);
 begin
-  if other is TNoneObject then SetBoolDest(dest, True)
+  if other.ClassType = TNoneObject then SetBoolDest(dest, True)
   else SetBoolDest(dest, False);
 end;
 
@@ -577,7 +578,7 @@ end;
 
 procedure TBoolObject.ASGN(other:TEpObject; var dest:TEpObject);
 begin
-  if other is TBoolObject then
+  if other.ClassType = TBoolObject then
     self.value := TBoolObject(other).value
   else
     inherited;
@@ -585,7 +586,7 @@ end;
 
 procedure TBoolObject.EQ(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TBoolObject) then
+  if (other.ClassType = TBoolObject) then
     SetBoolDest(dest, self.value = TBoolObject(other).value)
   else
     SetBoolDest(dest, self.value = other.AsBool)
@@ -593,7 +594,7 @@ end;
 
 procedure TBoolObject.NE(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TBoolObject) then
+  if (other.ClassType = TBoolObject) then
     SetBoolDest(dest, self.value <> TBoolObject(other).value)
   else
     SetBoolDest(dest, self.value <> other.AsBool)
@@ -601,11 +602,11 @@ end;
 
 procedure TBoolObject.LT(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TBoolObject) then
+  if (other.ClassType = TBoolObject) then
     SetBoolDest(dest, Ord(self.value) < Ord(TBoolObject(other).value))
-  else if (other is TIntObject) then
+  else if (other.ClassType = TIntObject) then
     SetBoolDest(dest, Ord(self.value) < TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, Ord(self.value) < TFloatObject(other).value)
   else
     SetBoolDest(dest, Ord(self.value) < other.AsInt)
@@ -613,11 +614,11 @@ end;
 
 procedure TBoolObject.GT(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TBoolObject) then
+  if (other.ClassType = TBoolObject) then
     SetBoolDest(dest, Ord(self.value) > Ord(TBoolObject(other).value))
-  else if (other is TIntObject) then
+  else if (other.ClassType = TIntObject) then
     SetBoolDest(dest, Ord(self.value) > TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, Ord(self.value) > TFloatObject(other).value)
   else
     SetBoolDest(dest, Ord(self.value) > other.AsInt)
@@ -625,11 +626,11 @@ end;
 
 procedure TBoolObject.LE(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TBoolObject) then
+  if (other.ClassType = TBoolObject) then
     SetBoolDest(dest, Ord(self.value) <= Ord(TBoolObject(other).value))
-  else if (other is TIntObject) then
+  else if (other.ClassType = TIntObject) then
     SetBoolDest(dest, Ord(self.value) <= TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, Ord(self.value) <= TFloatObject(other).value)
   else
     SetBoolDest(dest, Ord(self.value) <= other.AsInt)
@@ -637,11 +638,11 @@ end;
 
 procedure TBoolObject.GE(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TBoolObject) then
+  if (other.ClassType = TBoolObject) then
     SetBoolDest(dest, Ord(self.value) >= Ord(TBoolObject(other).value))
-  else if (other is TIntObject) then
+  else if (other.ClassType = TIntObject) then
     SetBoolDest(dest, Ord(self.value) >= TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, Ord(self.value) >= TFloatObject(other).value)
   else
     SetBoolDest(dest, Ord(self.value) >= other.AsInt)
@@ -649,7 +650,7 @@ end;
 
 procedure TBoolObject.LOGIC_AND(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TBoolObject) then
+  if (other.ClassType = TBoolObject) then
     SetBoolDest(dest, self.value and TBoolObject(other).value)
   else
     SetBoolDest(dest, self.value and other.AsBool);
@@ -657,7 +658,7 @@ end;
 
 procedure TBoolObject.LOGIC_OR(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TBoolObject) then
+  if (other.ClassType = TBoolObject) then
     SetBoolDest(dest, self.value or TBoolObject(other).value)
   else
     SetBoolDest(dest, self.value or other.AsBool);
@@ -714,7 +715,7 @@ end;
 
 procedure TCharObject.ASGN(other:TEpObject; var dest:TEpObject);
 begin
-  if other is TCharObject then
+  if other.ClassType = TCharObject then
     self.value := TCharObject(other).value
   else
     inherited;
@@ -722,9 +723,9 @@ end;
 
 procedure TCharObject.ADD(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TCharObject) then
+  if (other.ClassType = TCharObject) then
     SetStringDest(dest, self.value + TCharObject(other).value)
-  else if (other is TStringObject) then
+  else if (other.ClassType = TStringObject) then
     SetStringDest(dest, self.value + TStringObject(other).value)
   else
     SetBoolDest(dest, ord(self.value) = other.AsInt)
@@ -732,7 +733,7 @@ end;
 
 procedure TCharObject.EQ(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TCharObject) then
+  if (other.ClassType = TCharObject) then
     SetBoolDest(dest, self.value = TCharObject(other).value)
   else
     SetBoolDest(dest, ord(self.value) = other.AsInt)
@@ -740,7 +741,7 @@ end;
 
 procedure TCharObject.NE(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TCharObject) then
+  if (other.ClassType = TCharObject) then
     SetBoolDest(dest, self.value <> TCharObject(other).value)
   else
     SetBoolDest(dest, ord(self.value) <> other.AsInt)
@@ -748,7 +749,7 @@ end;
 
 procedure TCharObject.LT(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TCharObject) then
+  if (other.ClassType = TCharObject) then
     SetBoolDest(dest, self.value < TCharObject(other).value)
   else
     SetBoolDest(dest, ord(self.value) < other.AsInt)
@@ -756,7 +757,7 @@ end;
 
 procedure TCharObject.GT(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TCharObject) then
+  if (other.ClassType = TCharObject) then
     SetBoolDest(dest, self.value > TCharObject(other).value)
   else
     SetBoolDest(dest, ord(self.value) > other.AsInt)
@@ -764,7 +765,7 @@ end;
 
 procedure TCharObject.LE(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TCharObject) then
+  if (other.ClassType = TCharObject) then
     SetBoolDest(dest, self.value <= TCharObject(other).value)
   else
     SetBoolDest(dest, ord(self.value) <= other.AsInt)
@@ -772,7 +773,7 @@ end;
 
 procedure TCharObject.GE(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TCharObject) then
+  if (other.ClassType = TCharObject) then
     SetBoolDest(dest, self.value >= TCharObject(other).value)
   else
     SetBoolDest(dest, ord(self.value) >= other.AsInt)
@@ -780,9 +781,9 @@ end;
 
 procedure TCharObject.LOGIC_AND(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TCharObject) then
+  if (other.ClassType = TCharObject) then
     SetBoolDest(dest, (self.value <> #0) and (TCharObject(other).value <> #0))
-  else if (other is TBoolObject) then
+  else if (other.ClassType = TBoolObject) then
     SetBoolDest(dest, (self.value <> #0) and (TBoolObject(other).value))
   else
     SetBoolDest(dest, (self.value <> #0) and other.AsBool);
@@ -790,9 +791,9 @@ end;
 
 procedure TCharObject.LOGIC_OR(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TCharObject) then
+  if (other.ClassType = TCharObject) then
     SetBoolDest(dest, (self.value <> #0) or (TCharObject(other).value <> #0))
-  else if (other is TBoolObject) then
+  else if (other.ClassType = TBoolObject) then
     SetBoolDest(dest, (self.value <> #0) or (TBoolObject(other).value))
   else
     SetBoolDest(dest, (self.value <> #0) or other.AsBool);
@@ -991,6 +992,8 @@ begin
     SetBoolDest(dest, self.value = TIntObject(other).value)
   else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value = TFloatObject(other).value)
+  else if (other.ClassType = TBoolObject) then
+    SetBoolDest(dest, self.AsBool = TBoolObject(other).value)
   else
     inherited;
 end;
@@ -1001,6 +1004,8 @@ begin
     SetBoolDest(dest, self.value <> TIntObject(other).value)
   else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value <> TFloatObject(other).value)
+  else if (other.ClassType = TBoolObject) then
+    SetBoolDest(dest, self.AsBool <> TBoolObject(other).value)
   else
     inherited;
 end;
@@ -1011,6 +1016,8 @@ begin
     SetBoolDest(dest, self.value < TIntObject(other).value)
   else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value < TFloatObject(other).value)
+  else if (other.ClassType = TBoolObject) then
+    SetBoolDest(dest, self.value < other.AsInt)
   else
     inherited;
 end;
@@ -1021,6 +1028,8 @@ begin
     SetBoolDest(dest, self.value > TIntObject(other).value)
   else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value > TFloatObject(other).value)
+  else if (other.ClassType = TBoolObject) then
+    SetBoolDest(dest, self.value > other.AsInt)
   else
     inherited;
 end;
@@ -1031,6 +1040,8 @@ begin
     SetBoolDest(dest, self.value <= TIntObject(other).value)
   else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value <= TFloatObject(other).value)
+  else if (other.ClassType = TBoolObject) then
+    SetBoolDest(dest, self.value <= other.AsInt)
   else
     inherited;
 end;
@@ -1041,6 +1052,8 @@ begin
     SetBoolDest(dest, self.value >= TIntObject(other).value)
   else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value >= TFloatObject(other).value)
+  else if (other.ClassType = TBoolObject) then
+    SetBoolDest(dest, self.value >= other.AsInt)
   else
     inherited;
 end;
@@ -1126,7 +1139,7 @@ end;
 
 procedure TFloatObject.ASGN(other:TEpObject; var dest:TEpObject);
 begin
-  if other is TFloatObject then
+  if other.ClassType = TFloatObject then
     self.value := TFloatObject(other).value
   else
     inherited;
@@ -1134,9 +1147,9 @@ end;
 
 procedure TFloatObject.INPLACE_ADD(other:TEpObject);
 begin
-  if (other is TFloatObject) then
+  if (other.ClassType = TFloatObject) then
     self.value += TFloatObject(other).value
-  else if (other is TIntObject) then
+  else if (other.ClassType = TIntObject) then
     self.value += TIntObject(other).value
   else
     raise E_NOT_IMPLEMENTED;
@@ -1144,9 +1157,9 @@ end;
 
 procedure TFloatObject.INPLACE_SUB(other:TEpObject);
 begin
-  if (other is TFloatObject) then
+  if (other.ClassType = TFloatObject) then
     self.value -= TFloatObject(other).value
-  else if (other is TIntObject) then
+  else if (other.ClassType = TIntObject) then
     self.value -= TIntObject(other).value
   else
     raise E_NOT_IMPLEMENTED;
@@ -1154,9 +1167,9 @@ end;
 
 procedure TFloatObject.INPLACE_MUL(other:TEpObject);
 begin
-  if (other is TFloatObject) then
+  if (other.ClassType = TFloatObject) then
     self.value := self.value * TFloatObject(other).value
-  else if (other is TIntObject) then
+  else if (other.ClassType = TIntObject) then
     self.value := self.value * TIntObject(other).value
   else
     raise E_NOT_IMPLEMENTED;
@@ -1164,9 +1177,9 @@ end;
 
 procedure TFloatObject.INPLACE_DIV(other:TEpObject);
 begin
-  if (other is TFloatObject) then
+  if (other.ClassType = TFloatObject) then
     self.value := self.value / TFloatObject(other).value
-  else if (other is TIntObject) then
+  else if (other.ClassType = TIntObject) then
     self.value := self.value / TIntObject(other).value
   else
     raise E_NOT_IMPLEMENTED;
@@ -1174,26 +1187,26 @@ end;
 
 procedure TFloatObject.PREINC(var dest:TEpObject);
 begin
-  self.value += 1.0;
+  self.value += 1;
   SetFloatDest(dest, self.value);
 end;
 
 procedure TFloatObject.PREDEC(var dest:TEpObject);
 begin
-  self.value -= 1.0;
+  self.value -= 1;
   SetFloatDest(dest, self.value);
 end;
 
 procedure TFloatObject.POSTINC(var dest:TEpObject);
 begin
   SetFloatDest(dest, self.value);
-  self.value += 1.0;
+  self.value += 1;
 end;
 
 procedure TFloatObject.POSTDEC(var dest:TEpObject);
 begin
   SetFloatDest(dest, self.value);
-  self.value -= 1.0;
+  self.value -= 1;
 end;
 
 procedure TFloatObject.UNARY_SUB(var dest:TEpObject);
@@ -1203,9 +1216,9 @@ end;
 
 procedure TFloatObject.ADD(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetFloatDest(dest, self.value + TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetFloatDest(dest, self.value + TFloatObject(other).value)
   else
     inherited;
@@ -1213,9 +1226,9 @@ end;
 
 procedure TFloatObject.SUB(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetFloatDest(dest, self.value - TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetFloatDest(dest, self.value - TFloatObject(other).value)
   else
     inherited;
@@ -1223,9 +1236,9 @@ end;
 
 procedure TFloatObject.MUL(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetFloatDest(dest, self.value * TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetFloatDest(dest, self.value * TFloatObject(other).value)
   else
     inherited;
@@ -1233,9 +1246,9 @@ end;
 
 procedure TFloatObject.FDIV(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetFloatDest(dest, self.value / TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetFloatDest(dest, self.value / TFloatObject(other).value)
   else
     inherited;
@@ -1243,9 +1256,9 @@ end;
 
 procedure TFloatObject.MODULO(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetFloatDest(dest, utils.modulo(self.value, TIntObject(other).value))
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetFloatDest(dest, utils.modulo(self.value, TFloatObject(other).value))
   else
     inherited;
@@ -1253,9 +1266,9 @@ end;
 
 procedure TFloatObject.POW(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetFloatDest(dest, self.value * TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetFloatDest(dest, self.value * TFloatObject(other).value)
   else
     inherited;
@@ -1263,60 +1276,72 @@ end;
 
 procedure TFloatObject.EQ(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetBoolDest(dest, self.value = TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value = TFloatObject(other).value)
+  else if (other.ClassType = TBoolObject) then
+    SetBoolDest(dest, self.AsBool = TBoolObject(other).value)
   else
     inherited;
 end;
 
 procedure TFloatObject.NE(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetBoolDest(dest, self.value <> TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value <> TFloatObject(other).value)
+  else if (other.ClassType = TBoolObject) then
+    SetBoolDest(dest, self.AsBool <> TBoolObject(other).value)
   else
     inherited;
 end;
 
 procedure TFloatObject.LT(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetBoolDest(dest, self.value < TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value < TFloatObject(other).value)
+  else if (other.ClassType = TBoolObject) then
+    SetBoolDest(dest, self.value < other.AsInt)
   else
     inherited;
 end;
 
 procedure TFloatObject.GT(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetBoolDest(dest, self.value > TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value > TFloatObject(other).value)
+  else if (other.ClassType = TBoolObject) then
+    SetBoolDest(dest, self.value > other.AsInt)
   else
     inherited;
 end;
 
 procedure TFloatObject.LE(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetBoolDest(dest, self.value <= TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value <= TFloatObject(other).value)
+  else if (other.ClassType = TBoolObject) then
+    SetBoolDest(dest, self.value <= other.AsInt)
   else
     inherited;
 end;
 
 procedure TFloatObject.GE(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TIntObject) then
+  if (other.ClassType = TIntObject) then
     SetBoolDest(dest, self.value >= TIntObject(other).value)
-  else if (other is TFloatObject) then
+  else if (other.ClassType = TFloatObject) then
     SetBoolDest(dest, self.value >= TFloatObject(other).value)
+  else if (other.ClassType = TBoolObject) then
+    SetBoolDest(dest, self.value >= other.AsInt)
   else
     inherited;
 end;
@@ -1378,7 +1403,7 @@ function TStringObject.AsInt: epInt; begin raise E_NOT_IMPLEMENTED; end;
 
 procedure TStringObject.ASGN(other:TEpObject; var dest:TEpObject);
 begin
-  if other is TStringObject then
+  if other.ClassType = TStringObject then
     self.value := TStringObject(other).value
   else
     inherited;
@@ -1388,7 +1413,7 @@ procedure TStringObject.INPLACE_ADD(other:TEpObject);
 var l:Int32;
 begin
   L := Length(self.value);
-  if (other is TStringObject) then
+  if (other.ClassType = TStringObject) then
   begin
     if (Length(TStringObject(other).value) > 0) and
        (Length(self.value) > 0) then
@@ -1403,7 +1428,7 @@ begin
     else
       self.value += TStringObject(other).value
   end
-  else if (other is TCharObject) then
+  else if (other.ClassType = TCharObject) then
   begin
     SetLength(self.value, L+1);
     self.value[1+L] := TCharObject(other).value
@@ -1414,9 +1439,9 @@ end;
 
 procedure TStringObject.ADD(other:TEpObject; var dest:TEpObject);
 begin
-  if (other is TStringObject) then
+  if (other.ClassType = TStringObject) then
     SetStringDest(dest, self.value + TStringObject(other).value)
-  else if (other is TCharObject) then
+  else if (other.ClassType = TCharObject) then
     SetStringDest(dest, self.value + TCharObject(other).value)
   else
     inherited;
@@ -1424,7 +1449,7 @@ end;
 
 procedure TStringObject.GET_ITEM(constref index:TEpObject; var dest:TEpObject);
 begin
-  if index is TIntObject then
+  if index.ClassType = TIntObject then
     SetCharDest(dest, self.value[1+TIntObject(index).value])
   else
     SetCharDest(dest, self.value[1+index.AsInt]);
@@ -1566,7 +1591,7 @@ end;
 
 procedure TFuncObject.ASGN(other:TEpObject; var dest:TEpObject);
 begin
-  if other is TFuncObject then
+  if other.ClassType = TFuncObject then
   begin
     self.Name     := TFuncObject(other).Name;
     self.CodePos  := TFuncObject(other).CodePos;

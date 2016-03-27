@@ -88,7 +88,7 @@ type
     function _delItem(hash,idx:UInt32): Boolean; overload; inline;
   public
     // create
-    constructor Create(AHashFunc:THash);
+    constructor Create(AHashFunc:THash; BaseSize:Int32=0);
 
     // create a copy
     function Copy: TSelfType;
@@ -175,6 +175,7 @@ function HashInt32(constref k: Int32): UInt32; inline;
 function HashInt64(constref k: Int64): UInt32; inline;
 function HashNative(constref k: NativeInt): UInt32; inline;
 function HashPointer(constref k: PtrUInt): UInt32; inline;
+function HashFloat(constref k: Double): UInt32; inline;
 function HashStr(constref k: string): UInt32; inline;
 
 
@@ -211,6 +212,11 @@ begin
   Result := k;
 end;
 
+function HashFloat(constref k: Double): UInt32;
+begin
+  Result := UInt64(k);
+end;
+
 function HashStr(constref k: string): UInt32;
 var i:Int32;
 begin
@@ -226,11 +232,14 @@ end;
 
 
 (******************************************************************************)
-constructor TDictionary<K,V>.Create(AHashFunc:THash);
+constructor TDictionary<K,V>.Create(AHashFunc:THash; BaseSize:Int32=0);
 begin
+  if BaseSize = 0 then
+    BaseSize := DICT_MIN_SIZE;
+
   FHigh := 0;
-  FSize := DICT_MIN_SIZE-1;
-  SetLength(FData, DICT_MIN_SIZE);
+  FSize := BaseSize-1;
+  SetLength(FData, BaseSize);
   
   HashFunc := AHashFunc;
   FResizable := True;

@@ -37,7 +37,7 @@ type
 
   TCallerData = record
     vars: TObjectArray;
-    varStart, pc: Int32;
+    varStart, pc: UInt32;
   end;
 
   TCallStack = record
@@ -45,8 +45,8 @@ type
     StackPos: Int32;
     procedure Init;
 
-    procedure Push(constref vars:TObjectArray; constref pc, varStart: Int32);
-    procedure Reset(var pc: Int32; var bcVars:TObjectArray); inline;
+    procedure Push(constref vars:TObjectArray; constref pc, varStart: UInt32);
+    procedure Reset(var pc: UInt32; var bcVars:TObjectArray); inline;
   end;
 
   TInterpreter = class(TObject)
@@ -54,14 +54,14 @@ type
     Frame: TFrame;
     CallStack: TCallStack;
     Bytecode: TBytecode;
-    Pc: Int32;
+    Pc: UInt32;
   public
     constructor Create(bc:TBytecode);
     destructor Destroy; override;
 
     procedure CollectGarbage(); inline;
     procedure ExecuteSafe;
-    procedure Execute;
+    procedure Execute; inline;
 
     procedure CallFunction(func:TFuncObject; counter:Int32); inline;
     procedure BuildList(var dest:TEpObject); inline;
@@ -163,7 +163,7 @@ begin
   StackPos := -1;
 end;
 
-procedure TCallStack.Push(constref vars:TObjectArray; constref pc, varStart: Int32);
+procedure TCallStack.Push(constref vars:TObjectArray; constref pc, varStart: UInt32);
 begin
   if StackPos = High(Stack) then
     SetLength(Stack, Length(stack) * STACK_MULTIPLIER);
@@ -174,7 +174,7 @@ begin
   Stack[StackPos].varStart := varStart;
 end;
 
-procedure TCallStack.Reset(var PC: Int32; var bcVars:TObjectArray);
+procedure TCallStack.Reset(var PC: UInt32; var bcVars:TObjectArray);
 var
   GC:TGarbageCollector;
   top:TCallerData;
@@ -214,7 +214,8 @@ var g,i:Int32;
 begin
   if not Bytecode.GC.ShouldEnter then
     Exit;
-  //WriteLn('GC');
+
+  //WriteLn('+GC');
   for g:=0 to High(Bytecode.GC.CountDown) do
     if Bytecode.GC.CountDown[g] <= 0 then
     begin
@@ -231,17 +232,23 @@ begin
       //remove everything that wasn't marked, promote the remainders to another generation (when possible)
       Bytecode.GC.Sweep(g);
     end;
+  //WriteLn('-GC');
 end;
 
 procedure TInterpreter.ExecuteSafe;
 begin
-  Execute;
+  try
+    Execute;
+  except
+    on e:RuntimeError do
+      raise RuntimeError.Create(e.Message +' at '+ Bytecode.DocPos[pc-1].ToString);
+  end;
 end;
 
 procedure TInterpreter.Execute;
 var
   op: TOperation;
-  index,tmp,left,right: TEpObject;
+  index,tmp,right: TEpObject;
 begin
   pc := 0;
   while True do

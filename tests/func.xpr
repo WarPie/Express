@@ -1,6 +1,6 @@
 func get_sqr_func()
   func get_it() 
-    func sqr(x) return x*x
+    func sqr(x) => x*x
     return sqr
   end
   return get_it;

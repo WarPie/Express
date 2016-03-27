@@ -1,0 +1,23 @@
+(*
+func main(lim)
+  print 'Starting:', lim
+  var b := 0
+  var a := 1594
+  for var i:=0; i <= lim; i++ do
+    b := a div 3
+    b := a div 2
+  end
+end
+
+print main(50000000)
+*)
+
+
+//Can we add support for "closures"?
+func get_closure(multip)
+  func test(n) => n * multip;
+  return test;
+end
+
+var funky := get_closure(3);
+print funky(10)

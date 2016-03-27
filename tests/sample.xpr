@@ -20,7 +20,8 @@ end
 
 var i:=0;
 
-func sqr(x) return x*x
+func sqr(x) => x*x
+
 for i:=0; i<5; i++ do
   print sqr(i)
 end;

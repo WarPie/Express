@@ -29,6 +29,7 @@ resourcestring
   eExpectedArgCount      = 'Function `%s` expected `%d` arguments';
   eIndexOutOfRange       = 'Index out of range (index:%d; length:%d)';
   eNotImplemented        = 'Not implemented yet';
+  eNotCompatible1        = 'Operation is not compatible with types (%s, %s)';
   eNotAllowedOutsideLoop = '`%s` is not allowed outside a loop';
   eUnexpected            = 'An unexpected error occurred';
   eUnexpectedOperation   = 'Unexpected operation `%s`';
