@@ -4,6 +4,13 @@ Currently this is a simple and experimental core of a scripting language.
 
 The language design is mostly inspired by Python, JavaScript and some inspiration from Object Pascal.
 
+Test me
+-------
+1. open `cmd.exe` in the same folder as main.exe 
+2. run: `main.exe path/to/file.xpr`
+
+Alternative last startup-argument: A number to set max length of printed bytecode.
+
 
 So far we have
 --------------
