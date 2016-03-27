@@ -8,13 +8,13 @@ The language design is mostly inspired by Python, JavaScript and some inspiratio
 So far we have
 --------------
 - [x] _Operations:_
-    - [x] `:=`, `+=`, `-=`, `*=`, `/=`, **~~`&= |= ^=`~~**
-    - [x] `=`, `!=`, `<`, `>`, `<=`, `>=`
-    - [x] `+`, `-`, `*`, ~~`**`~~, `/`, `|`, `&`, `^`, **~~`shr shl`~~**
-    - [x] `and`, `or` `xor`
-- [x] _Constructs:_ `if`..`else`, `for`, `while`, `repeat`, `print`
+    - [x] `:=`  `+=`  `-=`  `*=`  `/=`  **~~`&= |= ^=`~~**
+    - [x] `=`, `!=`, `<`, `>`  `<=`  `>=`
+    - [x] `+`  `-`  `*`  ~~`**`~~  `/`  `|`  `&`  `^`  **~~`shr shl`~~**
+    - [x] `and`  `or`  `xor`
+- [x] _Constructs:_ `if`..`else`  `for`  `while`  `repeat`  `print`
 - [x] _Branch statements:_ `continue`, `break`, `return`
-- [x] _Data types:_ `int`, `float`, `bool`, `list`, `string`, `char`
+- [x] _Data types:_ `int`  `float`  `bool`  `list`  `string`  `char`
       ... and the "lack" of a datatype: `None`
 - [x] _Script functions (the basics)_
 - [x] _Methods supports local declarations, tho currently no closures (will error)_
