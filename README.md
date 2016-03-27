@@ -10,7 +10,7 @@ So far we have
 - [x] _Operations:_
     - [x] `:=` `+=` `-=` `*=` `/=` **~~`&= |= ^=`~~**
     - [x] `=` `!=` `<` `>` `<=` `<=`
-    - [x] `+` `-` `*` **~~`**`~~** `/` `|` `&` `^` **~~`shr shl`~~**
+    - [x] `+` `-` `*` ~~`**`~~ `/` `|` `&` `^` **~~`shr shl`~~**
     - [x] `and` `or` `xor`
 - [x] _Constructs:_ `if`..`else`, `for`, `while`, `repeat`, `print`
 - [x] _Branch statements:_ `continue`, `break`, `return`
