@@ -21,5 +21,4 @@ So far we have
 - [x] _Special expressions: `x if condition else y`, more could be added._
 - [x] _Garbage collector - which might, or might not work properly..._
 
-Could be more stuff that I've failed to mention. But keep in mind that many feature added is probably iffy, and **a lot** of error handling is lacking.. 
-
+Could be more stuff that I've failed to mention. But keep in mind that many feature added is probably iffy, and **a lot** of error handling is lacking..

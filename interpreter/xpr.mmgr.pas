@@ -1,19 +1,19 @@
+unit xpr.mmgr;
 {
   Author: Jarl K. Holta
   License: GNU Lesser GPL (http://www.gnu.org/licenses/lgpl.html)
 
   still thinking..
 }
-unit mmgr;
 {$I express.inc}
 
 interface
 
 uses
   SysUtils,
-  express,
-  dictionary,
-  datatypes;
+  xpr.express,
+  xpr.dictionary,
+  {$I objects.inc};
 
 const
   //base array size of a temp storage used when moving objects between generations.
@@ -63,12 +63,12 @@ type
     function AllocString(constref v:epString; gcGen:Int8=0): TEpObject; //inline;
     function AllocList(constref v:TObjectArray; gcGen:Int8=0): TEpObject; //inline;
     function AllocFunc(n:epString; p:Int32; r:TIntRange; gcGen:Int8=0): TEpObject; //inline;
-    procedure Release(var T:TEpObject); inline;
+    procedure Release(var T:TEpObject); //inline;
   end;
 
 implementation
 
-uses utils;
+uses xpr.utils;
 
 
 procedure TMemoryPool.Init;

@@ -3,13 +3,13 @@ program main;
 
 uses
   Classes, SysUtils, CustApp, Math, Windows, 
-  utils,
-  bytecode,
-  AST,
-  parser,
-  lexer,
-  interpreter,
-  errors;
+  xpr.utils,
+  xpr.bytecode,
+  xpr.AST,
+  xpr.parser,
+  xpr.lexer,
+  xpr.interpreter,
+  xpr.errors;
 
 type
   TMyApplication = class(TCustomApplication)
@@ -25,10 +25,14 @@ function LoadFileContents(fileName:String): String;
 var
   f:TStringList;
 begin
-  f := TStringList.Create();
-  f.LoadFromFile(fileName);
-  Result := f.Text;
-  f.Free();
+  if FileExists(fileName) then
+  begin
+    f := TStringList.Create();
+    f.LoadFromFile(fileName);
+    Result := f.Text;
+    f.Free();
+  end else
+    raise NotFoundError.CreateFmt('File `%s` not found!', [fileName]);
 end;
 
 procedure TestExecute2(filename:String);
@@ -37,7 +41,7 @@ var
   node:TBaseNode;
   code:TByteCode;
   CodeRunner:TInterpreter;
-
+  v:Int32;
   t:Double;
 begin
   script := LoadFileContents(filename);
@@ -57,7 +61,8 @@ begin
     end;
   end;
 
-  if Length(code.Code) <= 160 then
+  v := StrToIntDef(ParamStr(2), 50);
+  if Length(code.Code) <= v then
   begin
     WriteLn();
     WriteFancy('[GRAY]======================================');
@@ -100,13 +105,29 @@ begin
     WriteFancy('  '+ CodeRunner.Frame.StackToString);
   end;
 
-  WriteLn('...');
   CodeRunner.Free;
 end;
 
 procedure TMyApplication.DoRun;
 begin
-  TestExecute2('tests/quicksort.xpr');
+  if ParamStr(1) = '' then
+  begin
+    TestExecute2('tests/quicksort.xpr');
+    WriteLn();
+    WriteFancy('[GRAY]======================================');
+    WriteLn();
+    WriteFancy('[LRED]Recieved no arguments, executed a test-script.');
+  end;
+
+  try
+    TestExecute2(ParamStr(1));
+  except
+    on E:NotFoundError do
+    begin
+      if ParamStr(1) <> '' then WriteFancy('[RED]' + E.Message);
+      WriteLn(Format('Usage: main.exe path/to/script.xpr [bc_max_print_size]', [ParamStr(0)]));
+    end;
+  end;
 
   while True do Sleep(500);
   Terminate;
@@ -127,7 +148,7 @@ var
   Application: TMyApplication;
 begin
   Application := TMyApplication.Create(nil);
-  Application.Title := 'Express Test';
+  Application.Title := 'My Application';
   Application.Run;
   Application.Free;
 end.

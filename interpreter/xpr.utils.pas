@@ -1,17 +1,17 @@
+unit xpr.utils;
 {
   Author: Jarl K. Holta  
   License: GNU Lesser GPL (http://www.gnu.org/licenses/lgpl.html)
 
   utilities
 }
-unit utils;
 {$I express.inc}
 {$hints off}
 
 interface
 
 uses
-  express;
+  xpr.express;
 
 const INone = High(Int32);
 

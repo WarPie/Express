@@ -1,16 +1,18 @@
+unit xpr.AST;
 {
   Author: Jarl K. Holta
   License: GNU Lesser GPL (http://www.gnu.org/licenses/lgpl.html)
 
   Abstract syntax tree
 }
-unit AST;
 {$I express.inc}
 
 interface
 
 uses
-  Classes, SysUtils, express, bytecode;
+  Classes, SysUtils, 
+  xpr.express, 
+  xpr.bytecode;
 
 type
   (* 
@@ -25,7 +27,6 @@ type
 
   TNodeArray = array of TBaseNode;
 
-  
   (* 
     A list of statements or expressions
   *)
@@ -270,7 +271,11 @@ function CompileAST(astnode:TBaseNode; doFree:Boolean = True): TBytecode;
 implementation
 
 uses
-  interpreter, utils, datatypes, opcodes, errors;
+  xpr.interpreter, 
+  xpr.utils, 
+  xpr.opcodes,
+  xpr.errors,
+  {$I objects.inc};
 
 function CompileAST(astnode:TBaseNode; doFree:Boolean = True): TBytecode;
 var
@@ -278,7 +283,7 @@ var
 begin
   ctx := TCompilerContext.Create();
   astnode.Compile(ctx);
-  ctx.Emit(opcodes.RETURN, 0, astnode.FDocPos);
+  ctx.Emit(RETURN, 0, astnode.FDocPos);
   Result := ctx.Bytecode;
   ctx.Free;
   //if doFree then
@@ -357,19 +362,19 @@ begin
   if Expr <> nil then
     Expr.Compile(ctx)
   else
-    ctx.Emit(opcodes.LOAD_CONST, ctx.GetNone(), FDocPos);
+    ctx.Emit(LOAD_CONST, ctx.GetNone(), FDocPos);
 
-  ctx.Emit(opcodes.RETURN, 0, FDocPos);
+  ctx.Emit(RETURN, 0, FDocPos);
 end;
 
 procedure TContinue.Compile(ctx: TCompilerContext);
 begin
-  ctx.Emit(opcodes.__CONTINUE, 0, FDocPos);
+  ctx.Emit(__CONTINUE, 0, FDocPos);
 end;
 
 procedure TBreak.Compile(ctx: TCompilerContext);
 begin
-  ctx.Emit(opcodes.__BREAK, 0, FDocPos);
+  ctx.Emit(__BREAK, 0, FDocPos);
 end;
 
 
@@ -390,7 +395,7 @@ end;
 procedure TStatement.Compile(ctx: TCompilerContext);
 begin
   Expr.Compile(ctx);
-  ctx.Emit(opcodes.DISCARD_TOP, 0, FDocPos);
+  ctx.Emit(DISCARD_TOP, 0, FDocPos);
 end;
 
 (*
@@ -428,7 +433,7 @@ end;
 
 procedure TConstNone.Compile(ctx: TCompilerContext);
 begin
-  ctx.Emit(opcodes.LOAD_CONST, ctx.GetNone, FDocPos);
+  ctx.Emit(LOAD_CONST, ctx.GetNone, FDocPos);
 end;
 
 (*
@@ -445,7 +450,7 @@ procedure TConstBool.Compile(ctx: TCompilerContext);
 var obj:TEpObject;
 begin
   obj := ctx.GC.AllocBool(Value, 2);
-  ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
+  ctx.Emit(LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
 (*
@@ -464,7 +469,7 @@ procedure TConstChar.Compile(ctx: TCompilerContext);
 var obj:TEpObject;
 begin
   obj := ctx.GC.AllocChar(Value, 2);
-  ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
+  ctx.Emit(LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
 (*
@@ -481,7 +486,7 @@ procedure TConstInt.Compile(ctx: TCompilerContext);
 var obj:TEpObject;
 begin
   obj := ctx.GC.AllocInt(Value, 2);
-  ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
+  ctx.Emit(LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
 (*
@@ -498,7 +503,7 @@ procedure TConstFloat.Compile(ctx: TCompilerContext);
 var obj:TEpObject;
 begin
   obj := ctx.GC.AllocFloat(Value, 2);
-  ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
+  ctx.Emit(LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
 (*
@@ -514,7 +519,7 @@ procedure TConstString.Compile(ctx: TCompilerContext);
 var obj:TEpObject;
 begin
   obj := ctx.GC.AllocString(StrVal, 2);
-  ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
+  ctx.Emit(LOAD_CONST, ctx.RegisterConst(obj), FDocPos);
 end;
 
 (*
@@ -538,7 +543,7 @@ end;
 
 procedure TVariable.Compile(ctx: TCompilerContext);
 begin
-  ctx.Emit(opcodes.LOAD, ctx.LookupVar(self.Name, FDocPos), FDocPos);
+  ctx.Emit(LOAD, ctx.LookupVar(self.Name, FDocPos), FDocPos);
 end;
 
 (*
@@ -567,7 +572,7 @@ begin
     begin
       Expr.Compile(ctx);
       Variables[i].Compile(ctx);
-      ctx.Emit(opcodes.RASGN, dest, FDocPos);
+      ctx.Emit(RASGN, dest, FDocPos);
     end;
   end;
 end;
@@ -617,33 +622,33 @@ begin
     ctx.Vars.NamesToNumbers := funcNameMap;
 
     ctx.PreparePatch(True, 'FUNCTION['+Name+']');
-    ctx.Emit(opcodes.__FUNC, -1, FDocPos);
+    ctx.Emit(__FUNC, -1, FDocPos);
     funcStart := ctx.CodeSize;
 
     (* The caller has pushed arguments onto the stack, we need to store them *)
     for i:=0 to High(Params) do
     begin
       dest := ctx.RegisterVar(Params[High(Params)-i].Name);
-      ctx.Emit(opcodes.LOAD, dest, Params[High(Params)-i].FDocPos);
-      ctx.Emit(opcodes.RASGN, dest, Params[High(Params)-i].FDocPos);
+      ctx.Emit(LOAD, dest, Params[High(Params)-i].FDocPos);
+      ctx.Emit(RASGN, dest, Params[High(Params)-i].FDocPos);
     end;
 
     Prog.Compile(ctx);
-    ctx.Emit(opcodes.LOAD_CONST, ctx.GetNone(), FDocPos);
-    ctx.Emit(opcodes.RETURN, 0, FDocPos);
+    ctx.Emit(LOAD_CONST, ctx.GetNone(), FDocPos);
+    ctx.Emit(RETURN, 0, FDocPos);
 
     varRange.High := High(ctx.Vars.Names);
     funcObj := ctx.GC.AllocFunc(Name, funcStart, varRange, 2) as TFuncObject;
 
-    ctx.RunPatch(opcodes.__FUNC, opcodes.JMP_FORWARD, ctx.CodeSize());
+    ctx.RunPatch(__FUNC, JMP_FORWARD, ctx.CodeSize());
     ctx.PopPatch(True, 'END_FUNCTION');
   end;
 
   //reset context
   ctx.Vars.NamesToNumbers := oldNameMap;
 
-  ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(funcObj), FDocPos);
-  ctx.Emit(opcodes.STORE_FAST, funcID, FDocPos);
+  ctx.Emit(LOAD_CONST, ctx.RegisterConst(funcObj), FDocPos);
+  ctx.Emit(STORE_FAST, funcID, FDocPos);
 end;
 
 (*
@@ -668,7 +673,7 @@ begin
     Args[i].Compile(ctx);
 
   Callable.Compile(ctx);
-  ctx.Emit(opcodes.CALL, Length(Args), FDocPos);
+  ctx.Emit(CALL, Length(Args), FDocPos);
 end;
 
 
@@ -696,7 +701,7 @@ begin
   Args[0].Compile(ctx);
 
   Indexable.Compile(ctx);
-  ctx.Emit(opcodes.GET_ITEM, dest, FDocPos);
+  ctx.Emit(GET_ITEM, dest, FDocPos);
 end;
 
 (*
@@ -723,8 +728,8 @@ begin
   for i:=0 to l-1 do
     Expressions[i].Compile(ctx);
 
-  ctx.Emit(opcodes.LOAD_CONST, ctx.RegisterConst(ctx.GC.AllocInt(l, 2)), FDocPos);
-  ctx.Emit(opcodes.BUILD_LIST, dest, FDocPos);
+  ctx.Emit(LOAD_CONST, ctx.RegisterConst(ctx.GC.AllocInt(l, 2)), FDocPos);
+  ctx.Emit(BUILD_LIST, dest, FDocPos);
 end;
 
 
@@ -760,18 +765,18 @@ begin
       RaiseException(eSyntaxError, eExpectedVar, Left.FDocPos);
     if PostFix then
     begin
-      if      Op.Value = '++' then ctx.Emit(opcodes.UNARY_POSTINC, dest, FDocPos)
-      else if Op.Value = '--' then ctx.Emit(opcodes.UNARY_POSTDEC, dest, FDocPos);
+      if      Op.Value = '++' then ctx.Emit(UNARY_POSTINC, dest, FDocPos)
+      else if Op.Value = '--' then ctx.Emit(UNARY_POSTDEC, dest, FDocPos);
     end else
-      if      Op.Value = '++' then ctx.Emit(opcodes.UNARY_PREINC, dest, FDocPos)
-      else if Op.Value = '--' then ctx.Emit(opcodes.UNARY_PREDEC, dest, FDocPos);
+      if      Op.Value = '++' then ctx.Emit(UNARY_PREINC, dest, FDocPos)
+      else if Op.Value = '--' then ctx.Emit(UNARY_PREDEC, dest, FDocPos);
   end
   else
   begin
-    if      Op.Value = '-'   then ctx.Emit(opcodes.UNARY_SUB, dest, FDocPos)
+    if      Op.Value = '-'   then ctx.Emit(UNARY_SUB, dest, FDocPos)
     else if Op.Value = '+'   then (* nothing *)
-    else if Op.Value = 'not' then ctx.Emit(opcodes.UNARY_NOT, dest, FDocPos)
-    else if Op.Value = '~'   then ctx.Emit(opcodes.UNARY_BINV, dest, FDocPos)
+    else if Op.Value = 'not' then ctx.Emit(UNARY_NOT, dest, FDocPos)
+    else if Op.Value = '~'   then ctx.Emit(UNARY_BINV, dest, FDocPos)
     else RaiseException(eSyntaxError, eNotImplemented, Left.FDocPos);
   end;
 end;
@@ -802,7 +807,7 @@ begin
   Left.Compile(ctx);
   Right.Compile(ctx);
 
-  ctx.Emit(bytecode.OperatorToOpcode[op.value], dest, FDocPos)
+  ctx.Emit(OperatorToOpcode[op.value], dest, FDocPos)
 end;
 
 
@@ -839,18 +844,18 @@ begin
       begin
         ctx.PushDestVar(dest);
         Right.Compile(ctx); //compile with a destination = left: avoids an assignment
-        ctx.Emit(opcodes.DISCARD_TOP, 0, FDocPos);
+        ctx.Emit(DISCARD_TOP, 0, FDocPos);
       end else
       begin
         Left.Compile(ctx);
         Right.Compile(ctx);
-        ctx.Emit(opcodes.ASGN, dest, FDocPos)
+        ctx.Emit(ASGN, dest, FDocPos)
       end;
     end else
     begin
       Left.Compile(ctx);
       Right.Compile(ctx);
-      ctx.Emit(bytecode.OperatorToOpcode[op.value], dest, FDocPos);
+      ctx.Emit(OperatorToOpcode[op.value], dest, FDocPos);
     end;
   end
   else if (Left is TIndex) then
@@ -859,9 +864,9 @@ begin
     TIndex(Left).Indexable.Compile(ctx);  //a tad hacky? ;P
     TIndex(Left).Args[0].Compile(ctx);
     if isAsgn then
-      ctx.Emit(opcodes.SET_ITEM, 0, FDocPos)
+      ctx.Emit(SET_ITEM, 0, FDocPos)
     else
-      ctx.Emit(bytecode.OperatorToOpcode[op.value], 0, FDocPos);
+      ctx.Emit(OperatorToOpcode[op.value], 0, FDocPos);
   end else
     RaiseException(eSyntaxError, eUnexpected, Left.FDocPos);
 end;
@@ -888,9 +893,9 @@ var
   after,afterElse:Int32;
 begin
   Condition.Compile(ctx);
-  after := ctx.Emit(opcodes.JMP_IF_FALSE, 0, Condition.FDocPos);
+  after := ctx.Emit(JMP_IF_FALSE, 0, Condition.FDocPos);
   Left.Compile(ctx);
-  afterElse := ctx.Emit(opcodes.JMP_FORWARD, 0, Condition.FDocPos);
+  afterElse := ctx.Emit(JMP_FORWARD, 0, Condition.FDocPos);
   ctx.PatchArg(after, ctx.CodeSize());     //jump here if false
   Right.Compile(ctx);
   ctx.PatchArg(afterElse, ctx.CodeSize()); //jump here to skip else
@@ -928,10 +933,10 @@ var
 begin
   Condition.Compile(ctx);
 
-  after := ctx.Emit(opcodes.JMP_IF_FALSE, 0, Condition.FDocPos);
+  after := ctx.Emit(JMP_IF_FALSE, 0, Condition.FDocPos);
   Body.Compile(ctx);
   if (elseBody <> nil) then
-    afterElse := ctx.Emit(opcodes.JMP_FORWARD, 0, Condition.FDocPos);
+    afterElse := ctx.Emit(JMP_FORWARD, 0, Condition.FDocPos);
   ctx.PatchArg(after, ctx.CodeSize()); //jump here if false
 
   if (elseBody <> nil) then
@@ -967,15 +972,15 @@ begin
   before := ctx.CodeSize();
   //while -->
   Condition.Compile(ctx);
-  after := ctx.Emit(opcodes.JMP_IF_FALSE,0,Condition.FDocPos);
+  after := ctx.Emit(JMP_IF_FALSE,0,Condition.FDocPos);
   //<-- do -->
   Body.Compile(ctx);
-  ctx.Emit(opcodes.JMP_BACK, before, Condition.FDocPos);
+  ctx.Emit(JMP_BACK, before, Condition.FDocPos);
   //<--
   ctx.PatchArg(after, ctx.CodeSize());
 
-  ctx.RunPatch(__CONTINUE, opcodes.JMP_FORWARD, before);
-  ctx.RunPatch(__BREAK, opcodes.JMP_FORWARD, ctx.CodeSize());
+  ctx.RunPatch(__CONTINUE, JMP_FORWARD, before);
+  ctx.RunPatch(__BREAK, JMP_FORWARD, ctx.CodeSize());
   ctx.PopPatch();
 end;
 
@@ -1006,13 +1011,13 @@ begin
   Body.Compile(ctx);
   //<-- until -->
   Condition.Compile(ctx);
-  after := ctx.Emit(opcodes.JMP_IF_TRUE,0,Condition.FDocPos);
-  ctx.Emit(opcodes.JMP_BACK, before, Condition.FDocPos);
+  after := ctx.Emit(JMP_IF_TRUE,0,Condition.FDocPos);
+  ctx.Emit(JMP_BACK, before, Condition.FDocPos);
   //<--
   ctx.PatchArg(after, ctx.CodeSize());
 
-  ctx.RunPatch(__CONTINUE, opcodes.JMP_FORWARD, before);
-  ctx.RunPatch(__BREAK, opcodes.JMP_FORWARD, ctx.CodeSize());
+  ctx.RunPatch(__CONTINUE, JMP_FORWARD, before);
+  ctx.RunPatch(__BREAK, JMP_FORWARD, ctx.CodeSize());
   ctx.PopPatch();
 end;
 
@@ -1046,7 +1051,7 @@ begin
   if Stmt2 <> nil then
   begin
     Stmt2.Compile(ctx);    //the beginning of the body
-    after := ctx.Emit(opcodes.JMP_IF_FALSE, 0, Stmt2.FDocPos);
+    after := ctx.Emit(JMP_IF_FALSE, 0, Stmt2.FDocPos);
   end;
   Body.Compile(ctx);
   incPos := ctx.CodeSize;
@@ -1054,13 +1059,13 @@ begin
   if Stmt3 <> nil then
      Stmt3.Compile(ctx); //after the body
 
-  ctx.Emit(opcodes.JMP_BACK, before, FDocPos);
+  ctx.Emit(JMP_BACK, before, FDocPos);
 
   if Stmt2 <> nil then
     ctx.PatchArg(after, ctx.CodeSize());
 
-  ctx.RunPatch(__CONTINUE, opcodes.JMP_FORWARD, incPos);
-  ctx.RunPatch(__BREAK, opcodes.JMP_FORWARD, ctx.CodeSize());
+  ctx.RunPatch(__CONTINUE, JMP_FORWARD, incPos);
+  ctx.RunPatch(__BREAK, JMP_FORWARD, ctx.CodeSize());
   ctx.PopPatch();
 end;
 
@@ -1083,7 +1088,7 @@ var i:Int32;
 begin
   for i:=0 to High(Exprs) do
     Exprs[i].Compile(ctx);
-  ctx.Emit(opcodes.PRINT, Length(Exprs), FDocPos);
+  ctx.Emit(PRINT, Length(Exprs), FDocPos);
 end;
 
 
@@ -1102,7 +1107,7 @@ end;
 
 procedure TTimeNow.Compile(ctx: TCompilerContext);
 begin
-  ctx.Emit(opcodes.TIMENOW, 0, FDocPos);
+  ctx.Emit(TIMENOW, 0, FDocPos);
 end;
         
 

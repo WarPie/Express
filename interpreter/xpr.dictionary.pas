@@ -1,4 +1,4 @@
-unit dictionary;
+unit xpr.dictionary;
 {
   Author: Jarl K. Holta
   License: GNU Lesser GPL (http://www.gnu.org/licenses/lgpl.html)
@@ -182,8 +182,9 @@ function HashStr(constref k: string): UInt32; inline;
 //------------------------------------------------------------------------------
 implementation
 
-uses math, utils;
-
+uses
+  math,
+  xpr.utils;
 
 
 (******************************* Hash Functions *******************************)

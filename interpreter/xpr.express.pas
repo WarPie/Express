@@ -4,7 +4,7 @@
 
   General stuff
 }
-unit express;
+unit xpr.express;
 {$I express.inc}
 
 interface

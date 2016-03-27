@@ -1,23 +1,22 @@
+unit xpr.bytecode;
 {
   Author: Jarl K. Holta
   License: GNU Lesser GPL (http://www.gnu.org/licenses/lgpl.html)
 
   stuff
 }
-unit bytecode;
 {$I express.inc}
 
 interface
 
 uses
   Classes, SysUtils,
-  express,
-  dictionary,
-  datatypes,
-  utils,
-  {lexer,}
-  opcodes,
-  mmgr;
+  xpr.express,
+  xpr.dictionary,
+  xpr.opcodes,
+  xpr.mmgr,
+  xpr.utils,
+  xpr.objbase;
 
 type
   TObjectArray = array of TEpObject;
@@ -41,15 +40,14 @@ type
     Constants: TObjectArray;
     GC: TGarbageCollector;
 
-    NumVars: Int32;
-
+    // debugging
     VarNames: TStringArray;
     DebugHints: TIntToStringMap;
 
     constructor Create(ACode:TOperationArray;
                        AConstants:TObjectArray;
-                       ANumVars:Int32;
                        ADocPos:TDocPosArray;
+                       NumVars:Int32;
                        MemMgr:TGarbageCollector); virtual;
     destructor Destroy; override;
     function ToString: string; override;
@@ -108,14 +106,10 @@ type
 var
   OperatorToOpcode: TStringToOpcode; 
 
-const
-  INPLACE_OPERATIONS = [INPLACE_ADD, INPLACE_SUB, INPLACE_MUL, INPLACE_DIV];
-
-
 implementation
 
 uses
-  errors;
+  xpr.errors;
 
 
 (*============================================================================
@@ -123,15 +117,14 @@ uses
   ============================================================================*)
 constructor TBytecode.Create(ACode:TOperationArray;
                              AConstants:TObjectArray;
-                             ANumVars:Int32;
                              ADocPos:TDocPosArray;
+                             NumVars:Int32;
                              MemMgr:TGarbageCollector);
 var i:Int32;
 begin
   Code      := ACode;
   DocPos    := ADocPos;
   Constants := AConstants;
-  NumVars   := ANumVars;
   GC        := MemMgr;
 
   SetLength(Variables, NumVars);
@@ -361,7 +354,7 @@ end;
 // builds the bytecode which is what's executed at runtime.
 function TCompilerContext.Bytecode: TBytecode;
 begin
-  Result := TBytecode.Create(Code, Constants, Length(Vars.Names), DocPos, GC);
+  Result := TBytecode.Create(Code, Constants, DocPos, Length(Vars.Names), GC);
   Result.DebugHints := DebugHints;
   Result.VarNames := Vars.Names;
 end;

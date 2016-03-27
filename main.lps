@@ -4,24 +4,21 @@
     <PathDelim Value="\"/>
     <Version Value="9"/>
     <BuildModes Active="Release32"/>
-    <Units Count="16">
+    <Units Count="43">
       <Unit0>
         <Filename Value="main.lpr"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="103"/>
-        <CursorPos X="24" Y="108"/>
+        <TopLine Value="106"/>
+        <CursorPos X="40" Y="118"/>
         <UsageCount Value="209"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
         <Filename Value="lexer.pas"/>
-        <UnitName Value="lexer"/>
-        <EditorIndex Value="7"/>
-        <TopLine Value="121"/>
-        <CursorPos X="20" Y="129"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="31" Y="10"/>
         <UsageCount Value="104"/>
-        <Loaded Value="True"/>
       </Unit1>
       <Unit2>
         <Filename Value="utils.pas"/>
@@ -31,57 +28,42 @@
       </Unit2>
       <Unit3>
         <Filename Value="dictionary.pas"/>
-        <UnitName Value="dictionary"/>
-        <EditorIndex Value="11"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="375"/>
         <CursorPos X="31" Y="395"/>
         <UsageCount Value="102"/>
-        <Loaded Value="True"/>
       </Unit3>
       <Unit4>
         <Filename Value="parser.pas"/>
-        <UnitName Value="parser"/>
-        <EditorIndex Value="5"/>
-        <TopLine Value="495"/>
-        <CursorPos X="17" Y="507"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="96" Y="10"/>
         <UsageCount Value="101"/>
-        <Loaded Value="True"/>
       </Unit4>
       <Unit5>
         <Filename Value="AST.pas"/>
-        <UnitName Value="AST"/>
-        <EditorIndex Value="1"/>
-        <TopLine Value="822"/>
-        <CursorPos X="6" Y="889"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="262"/>
+        <CursorPos X="23" Y="273"/>
         <UsageCount Value="100"/>
-        <Loaded Value="True"/>
       </Unit5>
       <Unit6>
         <Filename Value="datatypes.pas"/>
-        <UnitName Value="datatypes"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="1274"/>
         <CursorPos X="23" Y="1290"/>
         <UsageCount Value="100"/>
-        <Loaded Value="True"/>
       </Unit6>
       <Unit7>
         <Filename Value="bytecode.pas"/>
-        <UnitName Value="bytecode"/>
-        <EditorIndex Value="6"/>
-        <TopLine Value="335"/>
-        <CursorPos X="23" Y="341"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="20" Y="14"/>
         <UsageCount Value="100"/>
-        <Loaded Value="True"/>
       </Unit7>
       <Unit8>
         <Filename Value="interpreter.pas"/>
-        <UnitName Value="interpreter"/>
-        <EditorIndex Value="2"/>
-        <TopLine Value="225"/>
-        <CursorPos X="6" Y="240"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="12" Y="14"/>
         <UsageCount Value="100"/>
-        <Loaded Value="True"/>
       </Unit8>
       <Unit9>
         <Filename Value="operations.pas"/>
@@ -99,168 +81,223 @@
       </Unit10>
       <Unit11>
         <Filename Value="express.inc"/>
-        <EditorIndex Value="12"/>
+        <EditorIndex Value="-1"/>
         <CursorPos X="15" Y="4"/>
         <UsageCount Value="106"/>
-        <Loaded Value="True"/>
       </Unit11>
       <Unit12>
         <Filename Value="errors.pas"/>
-        <UnitName Value="errors"/>
-        <EditorIndex Value="10"/>
+        <EditorIndex Value="-1"/>
         <TopLine Value="13"/>
         <CursorPos X="18" Y="32"/>
         <UsageCount Value="100"/>
-        <Loaded Value="True"/>
       </Unit12>
       <Unit13>
         <Filename Value="express.pas"/>
-        <UnitName Value="express"/>
-        <EditorIndex Value="9"/>
-        <CursorPos X="20" Y="15"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="91"/>
+        <CursorPos X="23" Y="9"/>
         <UsageCount Value="100"/>
-        <Loaded Value="True"/>
       </Unit13>
       <Unit14>
         <Filename Value="opcodes.pas"/>
-        <UnitName Value="opcodes"/>
-        <EditorIndex Value="8"/>
-        <TopLine Value="10"/>
-        <CursorPos X="14" Y="21"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="26" Y="6"/>
         <UsageCount Value="118"/>
-        <Loaded Value="True"/>
       </Unit14>
       <Unit15>
         <Filename Value="mmgr.pas"/>
-        <UnitName Value="mmgr"/>
-        <EditorIndex Value="3"/>
-        <TopLine Value="170"/>
-        <CursorPos X="11" Y="175"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="50"/>
+        <CursorPos X="41" Y="67"/>
         <UsageCount Value="103"/>
-        <Loaded Value="True"/>
       </Unit15>
+      <Unit16>
+        <Filename Value="objspace\float_obj.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3"/>
+        <CursorPos X="55" Y="10"/>
+        <UsageCount Value="10"/>
+      </Unit16>
+      <Unit17>
+        <Filename Value="objspace\bool_obj.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="68" Y="6"/>
+        <UsageCount Value="10"/>
+      </Unit17>
+      <Unit18>
+        <Filename Value="objspace\int_obj.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="292"/>
+        <CursorPos X="91" Y="126"/>
+        <UsageCount Value="10"/>
+      </Unit18>
+      <Unit19>
+        <Filename Value="objspace\char_obj.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="63" Y="8"/>
+        <UsageCount Value="10"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="objspace\none_obj.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2"/>
+        <CursorPos X="22" Y="18"/>
+        <UsageCount Value="10"/>
+      </Unit20>
+      <Unit21>
+        <Filename Value="objspace\objh.inc"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="27" Y="2"/>
+        <UsageCount Value="10"/>
+      </Unit21>
+      <Unit22>
+        <Filename Value="objspace\base_obj.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="144"/>
+        <CursorPos X="24" Y="153"/>
+        <UsageCount Value="10"/>
+      </Unit22>
+      <Unit23>
+        <Filename Value="express\xpr.bytecode.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="96" Y="14"/>
+        <UsageCount Value="10"/>
+      </Unit23>
+      <Unit24>
+        <Filename Value="express\objspace\xpr.objectbase.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="80"/>
+        <CursorPos X="15" Y="94"/>
+        <UsageCount Value="10"/>
+      </Unit24>
+      <Unit25>
+        <Filename Value="express\xpr.dictionary.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="171"/>
+        <CursorPos X="13" Y="187"/>
+        <UsageCount Value="10"/>
+      </Unit25>
+      <Unit26>
+        <Filename Value="express\objspace\objects.inc"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="16"/>
+        <UsageCount Value="10"/>
+      </Unit26>
+      <Unit27>
+        <Filename Value="express\objspace\xpr.float.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3"/>
+        <CursorPos X="11" Y="15"/>
+        <UsageCount Value="10"/>
+      </Unit27>
+      <Unit28>
+        <Filename Value="express\xpr.mmgr.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="7" Y="14"/>
+        <UsageCount Value="10"/>
+      </Unit28>
+      <Unit29>
+        <Filename Value="express\objspace\xpr.int.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3"/>
+        <CursorPos X="13" Y="15"/>
+        <UsageCount Value="10"/>
+      </Unit29>
+      <Unit30>
+        <Filename Value="express\xpr.AST.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="15" Y="14"/>
+        <UsageCount Value="10"/>
+      </Unit30>
+      <Unit31>
+        <Filename Value="express\xpr.parser.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="182"/>
+        <CursorPos X="11" Y="200"/>
+        <UsageCount Value="10"/>
+      </Unit31>
+      <Unit32>
+        <Filename Value="express\xpr.utils.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="7" Y="14"/>
+        <UsageCount Value="10"/>
+      </Unit32>
+      <Unit33>
+        <Filename Value="express\objspace\xpr.objbase.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="2"/>
+        <CursorPos X="13" Y="15"/>
+        <UsageCount Value="10"/>
+      </Unit33>
+      <Unit34>
+        <Filename Value="express\xpr.errors.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="13" Y="13"/>
+        <UsageCount Value="10"/>
+      </Unit34>
+      <Unit35>
+        <Filename Value="express\objspace\xpr.none.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3"/>
+        <CursorPos X="13" Y="15"/>
+        <UsageCount Value="10"/>
+      </Unit35>
+      <Unit36>
+        <Filename Value="express\objspace\xpr.bool.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3"/>
+        <CursorPos X="12" Y="15"/>
+        <UsageCount Value="10"/>
+      </Unit36>
+      <Unit37>
+        <Filename Value="express\objspace\xpr.char.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3"/>
+        <CursorPos X="13" Y="15"/>
+        <UsageCount Value="10"/>
+      </Unit37>
+      <Unit38>
+        <Filename Value="express\objspace\xpr.str.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3"/>
+        <CursorPos X="14" Y="15"/>
+        <UsageCount Value="10"/>
+      </Unit38>
+      <Unit39>
+        <Filename Value="express\objspace\xpr.list.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3"/>
+        <CursorPos X="14" Y="15"/>
+        <UsageCount Value="10"/>
+      </Unit39>
+      <Unit40>
+        <Filename Value="express\xpr.interpreter.pas"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="12" Y="13"/>
+        <UsageCount Value="10"/>
+      </Unit40>
+      <Unit41>
+        <Filename Value="express\xpr.lexer.pas"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="71"/>
+        <CursorPos X="14" Y="84"/>
+        <UsageCount Value="10"/>
+      </Unit41>
+      <Unit42>
+        <Filename Value="interpreter\xpr.errors.pas"/>
+        <UnitName Value="xpr.errors"/>
+        <EditorIndex Value="1"/>
+        <CursorPos X="16" Y="17"/>
+        <UsageCount Value="10"/>
+        <Loaded Value="True"/>
+      </Unit42>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="1">
       <Position1>
-        <Filename Value="dictionary.pas"/>
-        <Caret Line="124" Column="11" TopLine="106"/>
+        <Filename Value="main.lpr"/>
+        <Caret Line="56" Column="31"/>
       </Position1>
-      <Position2>
-        <Filename Value="mmgr.pas"/>
-        <Caret Line="53" Column="62" TopLine="38"/>
-      </Position2>
-      <Position3>
-        <Filename Value="mmgr.pas"/>
-        <Caret Line="127" Column="9" TopLine="107"/>
-      </Position3>
-      <Position4>
-        <Filename Value="lexer.pas"/>
-        <Caret Line="175" Column="5" TopLine="158"/>
-      </Position4>
-      <Position5>
-        <Filename Value="parser.pas"/>
-        <Caret Line="341" Column="26" TopLine="322"/>
-      </Position5>
-      <Position6>
-        <Filename Value="interpreter.pas"/>
-        <Caret Line="242" Column="42" TopLine="225"/>
-      </Position6>
-      <Position7>
-        <Filename Value="interpreter.pas"/>
-        <Caret Line="245" Column="32" TopLine="225"/>
-      </Position7>
-      <Position8>
-        <Filename Value="interpreter.pas"/>
-        <Caret Line="243" Column="41" TopLine="227"/>
-      </Position8>
-      <Position9>
-        <Filename Value="interpreter.pas"/>
-        <Caret Line="245" Column="26" TopLine="227"/>
-      </Position9>
-      <Position10>
-        <Filename Value="interpreter.pas"/>
-        <Caret Line="241" TopLine="227"/>
-      </Position10>
-      <Position11>
-        <Filename Value="interpreter.pas"/>
-        <Caret Line="64" Column="31" TopLine="46"/>
-      </Position11>
-      <Position12>
-        <Filename Value="interpreter.pas"/>
-        <Caret Line="245" Column="29" TopLine="225"/>
-      </Position12>
-      <Position13>
-        <Filename Value="interpreter.pas"/>
-        <Caret Line="244" Column="19" TopLine="227"/>
-      </Position13>
-      <Position14>
-        <Filename Value="express.inc"/>
-        <Caret Line="4" Column="15"/>
-      </Position14>
-      <Position15>
-        <Filename Value="AST.pas"/>
-        <Caret Line="217" Column="6" TopLine="195"/>
-      </Position15>
-      <Position16>
-        <Filename Value="AST.pas"/>
-        <Caret Line="870" Column="23" TopLine="860"/>
-      </Position16>
-      <Position17>
-        <Filename Value="parser.pas"/>
-        <Caret Line="203" Column="80" TopLine="530"/>
-      </Position17>
-      <Position18>
-        <Filename Value="parser.pas"/>
-        <Caret Line="612" Column="10" TopLine="602"/>
-      </Position18>
-      <Position19>
-        <Filename Value="parser.pas"/>
-        <Caret Line="616" Column="51" TopLine="600"/>
-      </Position19>
-      <Position20>
-        <Filename Value="AST.pas"/>
-        <Caret Line="211" Column="64" TopLine="192"/>
-      </Position20>
-      <Position21>
-        <Filename Value="AST.pas"/>
-        <Caret Line="872" Column="21" TopLine="853"/>
-      </Position21>
-      <Position22>
-        <Filename Value="parser.pas"/>
-        <Caret Line="616" Column="51" TopLine="600"/>
-      </Position22>
-      <Position23>
-        <Filename Value="parser.pas"/>
-        <Caret Line="619" Column="74" TopLine="605"/>
-      </Position23>
-      <Position24>
-        <Filename Value="AST.pas"/>
-        <Caret Line="123" Column="11" TopLine="103"/>
-      </Position24>
-      <Position25>
-        <Filename Value="datatypes.pas"/>
-        <Caret Line="471" Column="61" TopLine="469"/>
-      </Position25>
-      <Position26>
-        <Filename Value="datatypes.pas"/>
-        <Caret Line="496" Column="18" TopLine="470"/>
-      </Position26>
-      <Position27>
-        <Filename Value="datatypes.pas"/>
-        <Caret Line="540" Column="23" TopLine="526"/>
-      </Position27>
-      <Position28>
-        <Filename Value="datatypes.pas"/>
-        <Caret Line="1516" Column="17" TopLine="1490"/>
-      </Position28>
-      <Position29>
-        <Filename Value="datatypes.pas"/>
-        <Caret Line="1600" Column="21" TopLine="1573"/>
-      </Position29>
-      <Position30>
-        <Filename Value="datatypes.pas"/>
-        <Caret Line="314" Column="61" TopLine="297"/>
-      </Position30>
     </JumpHistory>
   </ProjectSession>
 </CONFIG>

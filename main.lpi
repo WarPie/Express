@@ -70,7 +70,8 @@
             <Filename Value="main"/>
           </Target>
           <SearchPaths>
-            <IncludeFiles Value="$(ProjOutDir)"/>
+            <IncludeFiles Value="$(ProjOutDir);interpreter;interpreter\objspace"/>
+            <OtherUnitFiles Value="interpreter;interpreter\objspace"/>
             <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
           </SearchPaths>
           <Parsing>

@@ -1,24 +1,23 @@
+unit xpr.parser;
 {
   Author: Jarl K. Holta
   License: GNU Lesser GPL (http://www.gnu.org/licenses/lgpl.html)
 
   A parser... Or, that's what it's ment to be :P
 }
-unit parser;
 {$I express.inc}
 
 interface
 
 uses
-  Classes,
   SysUtils,
-  express,
-  lexer,
-  AST,
-  errors;
+  xpr.express,
+  xpr.lexer,
+  xpr.AST,
+  xpr.errors;
 
 const
-  ATOM = [tk_ident, tk_int, tk_float, tk_bool, tk_char, tk_string, tk_none];
+  ATOM       = [tk_ident, tk_int, tk_float, tk_bool, tk_char, tk_string, tk_none];
   EXPRESSION = ATOM + [tk_sum, tk_bitwise, tk_paren, tk_square];
   SEPARATORS = [tk_newline, tk_semicolon];
 
@@ -94,8 +93,9 @@ type
 function Parse(Tokenizer:TTokenizer): TBaseNode;
 
 implementation
+
 uses
-  utils;
+  xpr.utils;
 
 function Parse(Tokenizer:TTokenizer): TBaseNode;
 var
@@ -191,13 +191,13 @@ end;
 [==============================================================================}
 procedure TParser.RaiseException(msg:string);
 begin
-  errors.RaiseException(eSyntaxError, msg, DocPos);
+  xpr.errors.RaiseException(eSyntaxError, msg, DocPos);
 end;
 
 procedure TParser.RaiseExceptionFmt(msg:string; fmt:array of const);
 begin
   try
-    errors.RaiseExceptionFmt(eSyntaxError, msg, fmt, DocPos);
+    xpr.errors.RaiseExceptionFmt(eSyntaxError, msg, fmt, DocPos);
   except
     on e:SyntaxError do
       raise SyntaxError.Create(e.Message) at get_caller_addr(get_frame);

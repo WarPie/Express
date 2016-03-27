@@ -1,16 +1,17 @@
+unit xpr.errors;
 {
   Author: Jarl K. Holta
   License: GNU Lesser GPL (http://www.gnu.org/licenses/lgpl.html)
 
   Error handling
 }
-unit errors;
 {$I express.inc}
 
 interface
 
 uses
-  Classes, SysUtils, express;
+  SysUtils,
+  xpr.express;
 
 type
   ExpressError = class(Exception)

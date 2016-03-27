@@ -1,16 +1,18 @@
+unit xpr.lexer;
 {
   Author: Jarl K. Holta
   License: GNU Lesser GPL (http://www.gnu.org/licenses/lgpl.html)
 
   A straight forward tokenizer
 }
-unit lexer;
 {$I express.inc}
 
 interface
 
 uses
-  Classes, SysUtils, dictionary, express;
+  Classes, SysUtils, 
+  xpr.dictionary, 
+  xpr.express;
 
 type
   (*
@@ -79,7 +81,7 @@ procedure TestLexer(fileName:string; printTokens:Boolean; nRounds:Int32=5);
 implementation
 
 uses
-  utils;
+  xpr.utils;
 
 type
   TReservedName = record

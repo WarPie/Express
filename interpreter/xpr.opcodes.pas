@@ -1,10 +1,10 @@
+unit xpr.opcodes;
 {
   Author: Jarl K. Holta
   License: GNU Lesser GPL (http://www.gnu.org/licenses/lgpl.html)
 
   stuff
 }
-unit opcodes;
 {$I express.inc}
 
 interface

@@ -1,10 +1,10 @@
+unit xpr.interpreter;
 {
   Author: Jarl K. Holta
   License: GNU Lesser GPL (http://www.gnu.org/licenses/lgpl.html)
 
   Interpreter, for the execution of code
 }
-unit interpreter;
 {$I express.inc}
 
 interface
@@ -12,9 +12,9 @@ interface
 uses
   Classes,
   SysUtils,
-  express,
-  datatypes,
-  bytecode;
+  xpr.express,
+  xpr.bytecode,
+  {$I objects.inc};
 
 const
   STACK_MIN_SIZE   = 16;
@@ -73,7 +73,10 @@ procedure PrintFunc(exprs:TObjectArray);
 implementation
 
 uses
-  utils, errors, opcodes, mmgr;
+  xpr.utils, 
+  xpr.errors, 
+  xpr.opcodes, 
+  xpr.mmgr;
 
 
 procedure PrintFunc(exprs:TObjectArray);
